@@ -1,0 +1,3 @@
+[submodule "amorphic-config"]
+	path = amorphic-config
+	url = git@bitbucket.org:cloudwick-labs/amorphic-config.git

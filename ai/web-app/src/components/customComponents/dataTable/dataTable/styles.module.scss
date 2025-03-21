@@ -1,0 +1,92 @@
+/* stylelint-disable no-descending-specificity */
+
+.dataTable {
+  @apply text-jetGray font-robotoRegular w-auto table;
+  @apply divide-y divide-ashGray overflow-x-hidden;
+
+  td {
+    @apply px-4 py-2 break-words whitespace-pre-line min-w-[10rem] max-w-[16rem];
+  }
+
+  tr {
+    @apply tracking-wide;
+
+    td {
+      @apply min-w-[16rem] bg-white;
+
+      outline-width: 1px;
+      outline-color: #f2f2f2;
+      outline-offset: 0;
+    }
+
+    td:first-child {
+      @apply sticky z-10 inset-x-0;
+    }
+  }
+
+  thead {
+    @apply border-b-2 border-platinum font-semibold;
+
+    tr {
+      @apply divide-x divide-platinum;
+
+      td {
+        @apply bg-chalkGray;
+      }
+
+      td:first-child {
+        @apply bg-ashGray py-3;
+      }
+    }
+  }
+
+  tbody {
+    @apply bg-white divide-y divide-ashGray;
+
+    tr {
+      @apply divide-ashGray;
+    }
+  }
+
+  .skeletonBlock {
+    @apply pb-6;
+  }
+}
+
+:global(.dark) {
+  .dataTable {
+    @apply text-platinum divide-y divide-darkBorder;
+
+    tr {
+      @apply divide-darkBorder;
+
+      td {
+        @apply bg-dark1;
+      }
+    }
+
+    tbody {
+      @apply bg-dark2 divide-darkBorder;
+
+      td {
+        @apply bg-dark2 border-darkBorder;
+      }
+    }
+
+    thead {
+      @apply border-darkBorder;
+
+      tr {
+        @apply divide-darkBorder;
+
+        td {
+          @apply bg-dark3 ;
+        }
+
+        td:first-child {
+          @apply bg-dark1;
+        }
+      }
+    }
+  }
+}

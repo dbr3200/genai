@@ -1,0 +1,1088 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Amorphic AI - Infrastructure Master CF stack.
+Parameters:
+  # Project Level Parameters
+  pSSMEnvironment:
+    Description: Environment
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.ENVIRONMENT
+  pSSMProjectName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.PROJECTNAME
+  pSSMProjectShortName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.PROJECTSHORTNAME
+  pSSMVerticalName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.AI.CONFIG.VERTICALNAME
+  pSSMEnableBucketVersioning:
+    Description: Enable Bucket Versioning on all s3 buckets
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.ENABLEBUCKETVERSIONING
+  # Cloudfront/WAF related parameters
+  pSSMSSLCertificateArn:
+    Description: Certificate Arn for AI
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.AI.CONFIG.ACMCERTIFICATEARN
+  pSSMAliases:
+    Description: Alias domain for AI
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.AI.CONFIG.ACMDOMAINALIAS
+  pSSMEnableWAF:
+    Description: Flag to deploy the WAF resources or not
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.ENABLEWAF
+  pSSMWAFwebACL:
+    Description: Globabl Wep Application Firewall
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.WEB.WAFWEBACL
+  pSSMKMSKeysList:
+    Type: AWS::SSM::Parameter::Value<List<String>>
+    Description: Customer managed KMS keys list
+    Default: AMORPHIC.COREBUCKET.KMSKEYSLIST
+  pSSMSESEmailFrom:
+    Description: SES FROM email address to send notifications.
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.SESFROMEMAIL
+  pSSMUserPoolId:
+    Description: Amorphic Cognito User Pool Id
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.COGNITO.USERPOOLID
+  pSSMAPICustomDomainName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.AI.CONFIG.APICUSTOMDOMAINNAME
+    Description: Custom domain name for api
+  pSSMEnableFips:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: FIPS Service Endpoints Enabled
+    Default: AMORPHIC.CONFIG.ENABLEFIPS 
+  pSSMAmorphicAPIGW:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.APIGATEWAY.APIURLWITHSTAGE
+    Description: Amorphic API Gateway
+Conditions:
+  cAlias: !Equals [ !Ref pSSMAliases, "no" ]
+  cManagedCertificate: !And
+  - !Not
+    - !Equals [!Ref pSSMSSLCertificateArn, "no"]
+  - !Not
+    - !Equals [!Ref pSSMAliases, "no"]
+  cEnableWAF: !Equals
+    - !Ref pSSMEnableWAF
+    - "yes"
+  cEnableCloudfrontLogging: !Not
+    - !Equals [!Ref 'AWS::Region', "me-south-1"]
+  cIsBucketVersioningEnabled: !Equals
+    - !Ref pSSMEnableBucketVersioning
+    - "yes"
+  cAPICustomDomainAvailable: !Not
+    - !Equals [!Ref pSSMAPICustomDomainName, "N/A"]
+  # Customers may have a requirement to use their own WAF rather than AWS WAF to maintain and manage easily.
+  # In that case, GenAI should be accessible via Custom Domain Alias and not via CloudFront provided domain.
+  cEnableCloudfrontFunction: !And
+    - !Not
+      - !Condition cEnableWAF
+    - !Not
+      - !Condition cAlias
+  cIsFIPSEnabled: !Equals
+    - !Ref pSSMEnableFips
+    - "yes"
+Resources:
+  # Logs Bucket for AI
+  rLogsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: LogDeliveryWrite
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: ObjectWriter
+      BucketName: !Join [ "-", [ !Ref pSSMProjectShortName, !Ref pSSMVerticalName, !Ref 'AWS::Region', !Ref 'AWS::AccountId', "logs" ] ]
+      VersioningConfiguration:
+        Fn::If: [ cIsBucketVersioningEnabled, Status: Enabled, Ref: AWS::NoValue ]
+      # Logs bucket is encrypted using AWS Managed KMS key and not Customer Managed Key because AWS does not support S3 bucket access logs and we do not store customer data in logs bucket.
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: TRUE
+        BlockPublicPolicy: TRUE
+        IgnorePublicAcls: TRUE
+        RestrictPublicBuckets: TRUE
+      Tags:
+      - Key: Name
+        Value: !Join [ "-", [ !Ref pSSMProjectName, !Ref pSSMVerticalName, !Ref pSSMEnvironment, "S3", "Logs", "Bucket" ] ]
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+  rLogsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref rLogsBucket
+      PolicyDocument:
+        Statement:
+        - Sid: PutObjectForLogsPolicy
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+          Action: s3:PutObject
+          Resource: !Sub "arn:${AWS::Partition}:s3:::${rLogsBucket}/*"
+        - Sid: GetBucketAclForLogsPolicy
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+          Action: s3:GetBucketAcl
+          Resource: !Sub "arn:${AWS::Partition}:s3:::${rLogsBucket}"
+        - Sid: AllowSSLRequestsOnly
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action: "*"
+          Resource:
+          - !Join [ "", [ "arn:", !Ref 'AWS::Partition', ":s3:::", !Ref rLogsBucket ] ]
+          - !Join [ "", [ "arn:", !Ref 'AWS::Partition', ":s3:::", !Ref rLogsBucket, "/*" ] ]
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
+        - Sid: DenyPublicReadACL
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action:
+            - s3:PutObject
+            - s3:PutObjectAcl
+          Resource: !Join [ "", [ "arn:", !Ref 'AWS::Partition', ":s3:::", !Ref rLogsBucket, "/*" ] ]
+          Condition:
+            StringEquals:
+              s3:x-amz-acl:
+                - public-read
+                - public-read-write
+                - authenticated-read
+        - Sid: DenyPublicReadGrant
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action:
+            - s3:PutObject
+            - s3:PutObjectAcl
+          Resource: !Join [ "", [ "arn:", !Ref 'AWS::Partition', ":s3:::", !Ref rLogsBucket, "/*" ] ]
+          Condition:
+            StringLike:
+              s3:x-amz-grant-read:
+                - "*http://acs.amazonaws.com/groups/global/AllUsers*"
+                - "*http://acs.amazonaws.com/groups/global/AuthenticatedUsers*"
+        - Sid: DenyPublicListACL
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action: s3:PutBucketAcl
+          Resource: !Join [ "", [ "arn:", !Ref 'AWS::Partition', ":s3:::", !Ref rLogsBucket ] ]
+          Condition:
+            StringEquals:
+              s3:x-amz-acl:
+                - public-read
+                - public-read-write
+                - authenticated-read
+        - Sid: DenyPublicListGrant
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action: s3:PutBucketAcl
+          Resource: !Join [ "", [ "arn:", !Ref 'AWS::Partition', ":s3:::", !Ref rLogsBucket ] ]
+          Condition:
+            StringLike:
+              s3:x-amz-grant-read:
+                - "*http://acs.amazonaws.com/groups/global/AllUsers*"
+                - "*http://acs.amazonaws.com/groups/global/AuthenticatedUsers*"
+  # Web Bucket for AI
+  rWebBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join ["-",[!Ref pSSMProjectShortName, !Ref pSSMVerticalName, !Ref "AWS::Region",!Ref "AWS::AccountId",!Ref pSSMEnvironment,"web"]]
+      VersioningConfiguration:
+        Fn::If: [ cIsBucketVersioningEnabled, Status: Enabled, Ref: AWS::NoValue ]
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'aws:kms'
+              KMSMasterKeyID: !Select [ 0, !Ref pSSMKMSKeysList ]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: TRUE
+        BlockPublicPolicy: TRUE
+        IgnorePublicAcls: TRUE
+        RestrictPublicBuckets: TRUE
+      LoggingConfiguration:
+        DestinationBucketName: !Ref rLogsBucket
+        LogFilePrefix: !Join [ "/", [ !Join [ "-", [ !Ref pSSMProjectShortName, !Ref pSSMVerticalName, !Ref "AWS::Region", !Ref "AWS::AccountId", !Ref pSSMEnvironment, "s3logs" ] ], "bucketname=web", "" ] ]
+      Tags:
+      - Key: Name
+        Value: !Join [ "-", [ !Ref pSSMProjectName, !Ref pSSMVerticalName, !Ref pSSMEnvironment, "S3", "WebResourcesBucket" ] ]
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref "AWS::Region"
+  rWebBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref rWebBucket
+      PolicyDocument:
+        Statement:
+        - Action: s3:GetObject
+          Effect: Allow
+          Principal:
+            Service: cloudfront.amazonaws.com
+          Resource: !Join ["", ["arn:", !Ref "AWS::Partition", ":s3:::", !Ref "rWebBucket", /*]]
+          Condition:
+            StringEquals:
+              AWS:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${rCloudFront}
+        - Sid: AllowSSLRequestsOnly
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action: s3:*
+          Resource:
+          - !Join ["", ["arn:", !Ref "AWS::Partition", ":s3:::", !Ref rWebBucket ] ]
+          - !Join ["", ["arn:", !Ref "AWS::Partition", ":s3:::", !Ref rWebBucket, "/*" ] ]
+          Condition:
+            Bool:
+              aws:SecureTransport: false
+  # Cloudfront Resources for AI
+  rCloudFrontCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Comment: Cloudfront Cache Policy for origin request
+        DefaultTTL: 86400
+        MaxTTL: 31536000
+        MinTTL: 1
+        Name: !Join ["-", [!Ref pSSMProjectName, !Ref pSSMVerticalName, !Ref pSSMEnvironment, "Cache", "Policy"]]
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig:
+            CookieBehavior: none
+          EnableAcceptEncodingBrotli: true
+          EnableAcceptEncodingGzip: true
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior:
+              all
+  rCloudFrontResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Join ["-", [!Ref pSSMProjectName, !Ref pSSMVerticalName, !Ref pSSMEnvironment, "Security", "Headers", "Policy"]]
+        Comment: Cloudfront Advanced Security Headers Policy for Origin Response
+        CustomHeadersConfig:
+            Items:
+              - Header: Feature-policy
+                Override: true
+                Value: sync-xhr 'self' https://*.amazonaws.com https://*.amazon.com; payment 'none';
+              - Header: Permissions-Policy
+                Override: true
+                Value: microphone=(), payment=(), sync-xhr=(self "https://*.amazonaws.com" "https://*.amazon.com")
+        SecurityHeadersConfig:
+            ContentSecurityPolicy:
+              ContentSecurityPolicy: !Sub
+                - >-
+                  upgrade-insecure-requests; default-src 'none'; child-src 'self'; font-src 'self' https://fonts.gstatic.com https://maxcdn.bootstrapcdn.com;
+                  img-src 'self' data: https://*.amazonaws.com; media-src 'self' https://*.amazonaws.com; worker-src 'self' blob:; script-src 'self' 'unsafe-inline';
+                  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com/ https://maxcdn.bootstrapcdn.com/; manifest-src 'self';
+                  connect-src 'self' https://*.amazonaws.com https://*.amazon.com https://*.amazoncognito.com wss://*.amazonaws.com ${APICUSTOMDOMAINNAME} ${AMORPHICAPIGW} blob:; form-action 'self' https://*.amazonaws.com http://*.amazonaws.com ${APICUSTOMDOMAINNAME};
+                  frame-ancestors https:; base-uri 'self' https://*.amazonaws.com; frame-src 'self' 'unsafe-inline' https://*.amazonaws.com https://*.amazon.com http://*.amazonaws.com;
+                - { 
+                    APICUSTOMDOMAINNAME: !If [ cAPICustomDomainAvailable, !Sub "https://${pSSMAPICustomDomainName}", "" ],
+                    AMORPHICAPIGW: !If [ cIsFIPSEnabled, !Sub "${pSSMAmorphicAPIGW}", "" ]
+                  }
+              Override: true
+            ContentTypeOptions:
+              Override: true
+            ReferrerPolicy:
+              ReferrerPolicy: same-origin
+              Override: true
+            StrictTransportSecurity:
+              AccessControlMaxAgeSec: 31536000
+              IncludeSubdomains: true
+              Preload: true
+              Override: true
+            XSSProtection:
+              ModeBlock: true
+              Protection: true
+              Override: true
+        RemoveHeadersConfig:
+          Items:
+            - Header: x-amz-server-side-encryption-aws-kms-key-id # Removing header to hide the kms key id in the response to enhance security
+
+  rRestrictCloudFrontUrlAccessFunction:
+    Type: AWS::CloudFront::Function
+    Condition: cEnableCloudfrontFunction
+    Properties:
+      Name: !Join [ "-", [ !Ref pSSMProjectShortName, !Ref pSSMEnvironment, !Ref pSSMVerticalName, "RestrictsCloudfrontUrlAccess" ] ]
+      FunctionConfig:
+        Comment: Access to GenAI is redirected through Custom Domain Alias
+        Runtime: cloudfront-js-2.0
+      FunctionCode: 
+        !Sub |
+          function handler(event) {
+            var request = event.request;
+            var headers = request.headers;
+
+            var hostHeader = headers.host.value;
+            
+            // Check if the host header ends with 'cloudfront.net'
+            if (hostHeader.endsWith('cloudfront.net')) {
+              return {
+                statusCode: 301,
+                statusDescription: 'Moved Permanently',
+                headers: {
+                  'location': { value: "https://${pSSMAliases}" },
+                  'cache-control': { value: 'no-cache' }
+                }
+              };
+            }
+            return request;
+          }
+      AutoPublish: true 
+
+  rCloudFront:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+        - DomainName: !GetAtt rWebBucket.RegionalDomainName
+          Id: !Join [ "" , [!Ref pSSMProjectShortName, !Ref pSSMVerticalName, "S3Origin"] ]
+          OriginAccessControlId: !GetAtt rCloudFrontOriginAccessControl.Id
+          S3OriginConfig:
+            OriginAccessIdentity: ''
+        Enabled: 'true'
+        Comment: 'AI Web application'
+        DefaultRootObject: index.html
+        Aliases:
+        - !If [ cAlias, !Ref 'AWS::NoValue', !Ref pSSMAliases ]
+        DefaultCacheBehavior:
+          AllowedMethods:
+          - HEAD
+          - DELETE
+          - POST
+          - GET
+          - OPTIONS
+          - PUT
+          - PATCH
+          Compress: true
+          TargetOriginId: !Join [ "" , [!Ref pSSMProjectShortName, !Ref pSSMVerticalName, "S3Origin"] ]
+          ViewerProtocolPolicy: redirect-to-https
+          ResponseHeadersPolicyId: !Ref rCloudFrontResponseHeadersPolicy
+          CachePolicyId: !Ref rCloudFrontCachePolicy
+          FunctionAssociations:
+            - !If 
+              - cEnableCloudfrontFunction
+              - EventType: viewer-request
+                FunctionARN: !GetAtt rRestrictCloudFrontUrlAccessFunction.FunctionARN
+              - !Ref 'AWS::NoValue'
+        CustomErrorResponses:
+        - ErrorCode: '403'
+          ResponsePagePath: "/index.html"
+          ResponseCode: '200'
+          ErrorCachingMinTTL: '300'
+        - ErrorCode: '404'
+          ResponsePagePath: "/index.html"
+          ResponseCode: '200'
+          ErrorCachingMinTTL: '300'
+        PriceClass: PriceClass_All
+        ViewerCertificate:
+          AcmCertificateArn: !If [ cManagedCertificate, !Ref pSSMSSLCertificateArn, !Ref 'AWS::NoValue' ]
+          CloudFrontDefaultCertificate: !If [ cManagedCertificate, !Ref 'AWS::NoValue', true  ]
+          SslSupportMethod: !If [ cManagedCertificate, 'sni-only', !Ref 'AWS::NoValue' ]
+          MinimumProtocolVersion: 'TLSv1.2_2021'
+        WebACLId: !If [ cEnableWAF, !Ref pSSMWAFwebACL, !Ref 'AWS::NoValue' ]
+        Logging:
+          !If
+            - cEnableCloudfrontLogging
+            -
+              Bucket: !Join [".", [!Ref rLogsBucket, "s3.amazonaws.com"]]
+              IncludeCookies: false
+              Prefix: "cloudfront/"
+            - !Ref 'AWS::NoValue'
+      Tags:
+      - Key: Name
+        Value: !Join [ "-", [ !Ref pSSMProjectName, !Ref pSSMVerticalName, !Ref pSSMEnvironment, "Cloudfront" ] ]
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+  rCloudFrontOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Description: Origin Access Control for Web bucket
+        Name: 'AI Web Application OAC'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: no-override
+        SigningProtocol: sigv4
+
+  ### IAM Roles
+
+  # Workspaces lambda role
+  rWorkspacesLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-WorkspacesLambda-ExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+      Policies:
+        - PolicyName: 'WorkspacesLambdaRolePolicy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Sid: AllowInvokeFunctionAmorphicLambda
+              Effect: Allow
+              Action: lambda:InvokeFunction
+              Resource:
+                - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-datasetOperations"
+                - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-datasetFiles"
+                - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-getPreSignedURL"
+                - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-domains"
+                - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-dwhTenants"
+                - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-getUser:${pSSMEnvironment}"
+                - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-accessTokens"
+                - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-workspaces"
+                - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-visualizations"
+                - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-textSummarization"
+                - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-agents"
+            - Effect: Allow
+              Action:
+                - ec2:CreateNetworkInterface
+                - ec2:DeleteNetworkInterface
+                - ec2:DescribeNetworkInterfaces
+                - ec2:DescribeSecurityGroups
+                - ec2:DescribeSubnets
+                - ec2:DescribeVpcs
+              Resource:
+                - '*'
+            - Effect: Allow
+              Action:
+                - states:StartExecution
+              Resource:
+                - !Sub 'arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-WorkspaceWebsiteContentScrapingStateMachine'
+                - !Sub 'arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-ExecuteInputLambdaStateMachine'
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:ListBucket
+              Resource:
+                - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-*-dlz"
+                - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-*-dlz/*"
+                - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-logs/*"
+                - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-${AWS::Region}-${AWS::AccountId}-core/adp/aws/*"
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource:
+                - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-*-dlz*"
+                - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-*-lz*"
+                - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aidatabucket/workspaces/*"
+                - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aidatabucket/custom-models/*"
+            - Effect: Allow
+              Action:
+                - s3:ListBucket
+                - s3:DeleteObject
+              Resource:
+                - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aidatabucket"
+                - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aidatabucket/workspaces/*"
+                - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aidatabucket/custom-models/*"
+                - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-logs"
+            - Effect: Allow
+              Action:
+                - ses:SendRawEmail
+                - ses:SendEmail
+              Resource: !Sub 'arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:identity/${pSSMSESEmailFrom}'
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminGetUser
+                - cognito-idp:ListUsers
+              Resource:
+                - !Sub 'arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${pSSMUserPoolId}'
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:PutParameter
+                - ssm:DeleteParameter
+              Resource:
+                - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${pSSMVerticalName}/*'
+                - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/AMORPHIC.AI*'
+            - Effect: Allow
+              Action:
+                - ses:GetSendQuota
+                - ses:VerifyEmailIdentity
+                - ses:SendEmail
+                - ses:SendCustomVerificationEmail
+                - ses:GetIdentityVerificationAttributes
+                - ses:DeleteVerifiedEmailAddress
+                - ses:TagResource
+              Resource:
+                - '*'
+            - Effect: Allow
+              Action:
+                - iam:CreateRole
+                - iam:DeleteRole
+                - iam:GetRole
+                - iam:TagRole
+                - iam:UntagRole
+                - iam:ListRoleTags
+                - iam:AttachRolePolicy
+                - iam:DetachRolePolicy
+                - iam:PutRolePolicy
+                - iam:DeleteRolePolicy
+                - iam:PassRole
+                - iam:GetRolePolicy
+                - iam:ListAttachedRolePolicies
+              Resource:
+                - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${pSSMProjectShortName}-*"
+                - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${pSSMProjectShortName}-*"
+            - Effect: Allow
+              Action:
+                - iam:PassRole
+              Resource:
+                - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${pSSMProjectShortName}-${pSSMVerticalName}-FileSyncEventPipe-ExecutionRole"
+            - Effect: Allow
+              Action:
+                - events:PutRule
+                - events:DeleteRule
+                - events:PutTargets
+                - events:ListTargetsByRule
+                - events:RemoveTargets
+              Resource: !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/${pSSMVerticalName}-*"
+            - Effect: Allow
+              Action: pipes:UpdatePipe
+              Resource:
+                - !Sub "arn:${AWS::Partition}:pipes:${AWS::Region}:${AWS::AccountId}:pipe/${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-FileSyncEventPipe"
+            - Effect: Allow
+              Action:
+                - cognito-idp:ListUsers
+                - cognito-idp:AdminDeleteUser
+                - cognito-idp:AdminDisableUser
+                - cognito-idp:AdminEnableUser
+                - cognito-idp:AdminGetUser
+                - cognito-idp:AdminUserGlobalSignOut
+                - cognito-idp:AdminSetUserMFAPreference
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:CreateUserImportJob
+                - cognito-idp:DescribeUserImportJob
+                - cognito-idp:StartUserImportJob
+                - cognito-idp:StopUserImportJob
+                - cognito-idp:AdminListDevices
+                - cognito-idp:AdminForgetDevice
+                - cognito-idp:GetCSVHeader
+              Resource: !Sub "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:ListBucketVersions
+                - s3:DeleteObject
+                - s3:DeleteObjectVersion
+                - s3:ListBucket
+                - s3:GetObject
+              Resource:
+                - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aidatabucket*"
+                - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aimiscbucket*"
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${pSSMProjectShortName}-${pSSMEnvironment}-*"
+            - Effect: Allow
+              Action:
+                - bedrock:*
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - rds:DescribeDBClusters
+                - rds:StartDBCluster
+                - rds:StopDBCluster
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - iam:PassRole
+              Resource:
+                - !GetAtt rCustomModelsRole.Arn
+                - !GetAtt rAgentsRole.Arn
+            - Effect: Allow
+              Action:
+                - logs:FilterLogEvents
+              Resource:
+                - !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/${AWS::Partition}/lambda/${pSSMProjectShortName}-ai-${pSSMEnvironment}-agents-*"
+            - Effect: Allow
+              Action:
+                - lambda:CreateFunction
+                - lambda:DeleteFunction
+                - lambda:GetFunction
+                - lambda:UpdateFunctionConfiguration
+                - lambda:CreateFunctionUrlConfig
+                - lambda:DeleteFunctionUrlConfig
+                - lambda:AddPermission
+                - lambda:RemovePermission
+                - lambda:TagResource
+                - lambda:UntagResource
+                - lambda:UpdateFunctionCode
+                - lambda:PublishLayerVersion
+                - lambda:ListLayerVersions
+                - lambda:ListTags
+                - lambda:GetLayerVersion
+                - lambda:DeleteLayerVersion
+              Resource:
+                - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-*"
+                - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:layer:${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-*"
+            - Effect: Allow
+              Action:
+                - execute-api:Invoke
+                - execute-api:ManageConnections
+              Resource: '*'
+            - Sid: AllowKmsActions
+              Effect: Allow
+              Action:
+                - kms:Decrypt
+                - kms:Encrypt
+                - kms:ReEncrypt*
+                - kms:GenerateDataKey*
+                - kms:DescribeKey
+                - kms:CreateGrant
+              Resource: !Join ["/", [!Sub "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key", !Select [16, !Ref pSSMKMSKeysList]] ]
+      ManagedPolicyArns:
+      - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${pSSMProjectShortName}-GenericPermissionsPolicy"
+      - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${pSSMProjectShortName}-LogsPermissionsPolicy"
+      - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${pSSMProjectShortName}-SSMPermissionsPolicy"
+  # Chatbots lambda role
+  rChatbotsLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-ChatbotsLambda-ExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+      Policies:
+        - PolicyName: 'ChatbotsLambdaRolePolicy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminGetUser
+                - cognito-idp:ListUsers
+              Resource:
+                - !Sub 'arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${pSSMUserPoolId}'
+            - Effect: Allow
+              Action:
+                - iam:PassRole
+              Resource:
+                - !GetAtt rEmbeddedChatbotsLambdaRole.Arn
+            - Effect: Allow
+              Action:
+                - lambda:CreateFunction
+                - lambda:DeleteFunction
+                - lambda:UpdateFunctionConfiguration
+                - lambda:CreateFunctionUrlConfig
+                - lambda:DeleteFunctionUrlConfig
+                - lambda:AddPermission
+                - lambda:RemovePermission
+                - lambda:TagResource
+                - lambda:UntagResource
+              Resource:
+                - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMVerticalName}-embedded-*'
+            - Effect: Allow
+              Action:
+                - ec2:CreateNetworkInterface
+                - ec2:DeleteNetworkInterface
+                - ec2:DescribeNetworkInterfaces
+                - ec2:DescribeSecurityGroups
+                - ec2:DescribeSubnets
+                - ec2:DescribeVpcs
+              Resource:
+                - '*'
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:PutParameter
+                - ssm:DeleteParameter
+              Resource:
+                - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${pSSMVerticalName}/*'
+                - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/AMORPHIC.AI*'
+      ManagedPolicyArns:
+      - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${pSSMProjectShortName}-GenericPermissionsPolicy"
+      - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${pSSMProjectShortName}-LogsPermissionsPolicy"
+      - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${pSSMProjectShortName}-SSMPermissionsPolicy"
+
+  #Chatbot-bedrock role
+  rEmbeddedChatbotsLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-EmbeddedChatbotsLambda-ExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+      Policies:
+        - PolicyName: EmbeddedChatbotPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+                - ec2:CreateNetworkInterface
+                - ec2:DeleteNetworkInterface
+                - ec2:DescribeNetworkInterfaces
+                - ec2:DescribeSecurityGroups
+                - ec2:DescribeSubnets
+                - ec2:DescribeVpcs
+              Resource:
+                - '*'
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+              Resource:
+                - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/AMORPHIC.AI*'
+                - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/*'
+            - Effect: Allow #TODO
+              Action:
+                - bedrock:*
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource:
+                - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${pSSMProjectShortName}*'
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:Query
+              Resource:
+                - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${pSSMProjectShortName}-${pSSMEnvironment}-verticals-${pSSMVerticalName}-api-rChatHistoryTable-*'
+                - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${pSSMProjectShortName}-${pSSMEnvironment}-verticals-${pSSMVerticalName}-api-rSessionsTable-*'
+            - Sid: AllowKmsActions
+              Effect: Allow
+              Action:
+                - kms:Decrypt
+                - kms:Encrypt
+                - kms:ReEncrypt*
+                - kms:GenerateDataKey*
+                - kms:DescribeKey
+              Resource:
+                - !Join ["/", [!Sub "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key", !Select [8, !Ref pSSMKMSKeysList]] ]
+                - !Join ["/", [!Sub "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key", !Select [16, !Ref pSSMKMSKeysList]] ]
+            - Effect: Allow
+              Action:
+                - execute-api:Invoke
+                - execute-api:ManageConnections
+              Resource: '*'
+      ManagedPolicyArns:
+      - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${pSSMProjectShortName}-LogsPermissionsPolicy"
+
+
+  # FileSyncPipe role
+  rFileSyncEventPipeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-FileSyncEventPipe-ExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - "pipes.amazonaws.com"
+      Policies:
+        - PolicyName: 'EventPipeDynamodbStreamPolicy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Sid: AllowDynamodbActions
+              Effect: Allow
+              Action:
+                - "dynamodb:DescribeStream"
+                - "dynamodb:GetRecords"
+                - "dynamodb:GetShardIterator"
+                - "dynamodb:ListStreams"
+              Resource:
+                - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${pSSMProjectShortName}-${pSSMEnvironment}-*/stream/*"
+        - PolicyName: 'EventPipeLambdaRolePolicy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Sid: AllowLambdaFunctionInvoke
+              Effect: Allow
+              Action: lambda:InvokeFunction
+              Resource:
+                - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-syncFiles"
+        - PolicyName: "KmsDecryptPolicy"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Sid: AllowKmsActions
+              Effect: Allow
+              Action:
+                - kms:Decrypt
+                - kms:Encrypt
+                - kms:ReEncrypt*
+                - kms:GenerateDataKey*
+                - kms:DescribeKey
+              Resource:
+                - !Join ["/", [!Sub "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key", !Select [8, !Ref pSSMKMSKeysList]] ]
+  # AWS Step Function related Roles
+  rAIStatesExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-StepFunction-ExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - !Sub states.${AWS::Region}.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: 'StateMachineExecutionPolicy'
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-*"
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-*:*"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogDelivery
+                  - logs:DeleteLogDelivery
+                  - logs:DescribeResourcePolicies
+                  - logs:GetLogDelivery
+                  - logs:ListLogDeliveries
+                  - logs:UpdateLogDelivery
+                Resource: "*"
+              - Effect: Allow
+                Action: states:StartExecution
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-*'
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aidatabucket/workspaces/*"
+      ManagedPolicyArns:
+      - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${pSSMProjectShortName}-LogsPermissionsPolicy"
+
+  # Role to be used for creating custom models
+  rCustomModelsRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-CustomModels-ExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "bedrock.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: 'CustomModelRolePolicy'
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                  - s3:ListObjects
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aidatabucket"
+                  - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aidatabucket/custom-models/*"
+              - Effect: Allow
+                Action: kms:Decrypt
+                Resource: !Join ["/", [!Sub "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key", !Select [8, !Ref pSSMKMSKeysList]] ]
+
+  # Role to be attached to bedrock agents
+  rAgentsRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "AmazonBedrockExecutionRoleForAgents_${pSSMProjectShortName}-ai"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - bedrock.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: 'AgentsRolePolicy'
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aimiscbucket"
+                  - !Sub "arn:${AWS::Partition}:s3:::${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aimiscbucket*"
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-agents-*"
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/*"
+              - Effect: Allow
+                Action:
+                  - bedrock:Retrieve
+                  - bedrock:RetrieveAndGenerate
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:knowledge-base*"
+  # PRE-BAKED ACTION GROUP LAMBDA EXECUTION ROLE
+  rPrebakedActionGroupLambdaExecRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-PrebakedActionGroupLambda-ExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - !Sub lambda.${AWS::Region}.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: ActionGroupLambdaPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+                - ec2:CreateNetworkInterface
+                - ec2:DeleteNetworkInterface
+                - ec2:DescribeNetworkInterfaces
+                - ec2:DescribeSecurityGroups
+                - ec2:DescribeSubnets
+                - ec2:DescribeVpcs
+              Resource:
+                - '*'
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+              Resource:
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*"
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource:
+                - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${pSSMProjectShortName}-${pSSMEnvironment}-verticals-${pSSMVerticalName}-*-rUsersTable-*"
+                - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${pSSMProjectShortName}-${pSSMEnvironment}-verticals-${pSSMVerticalName}-*-rSessionsTable-*"
+                - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${pSSMProjectShortName}-${pSSMEnvironment}-verticals-${pSSMVerticalName}-*-rSessionsTable-*/index/*"
+                - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${pSSMProjectShortName}-${pSSMEnvironment}-*-rDataset-*/index/*"
+                - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${pSSMProjectShortName}-${pSSMEnvironment}-*-rJobsTable-*/index/*"
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+              Resource: !Join ["/", [!Sub "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key", !Select [8, !Ref pSSMKMSKeysList]] ]
+            - Effect: Allow
+              Action:
+                - events:ListRules
+              Resource:
+                - !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/*"
+      ManagedPolicyArns:
+      - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${pSSMProjectShortName}-LogsPermissionsPolicy"
+
+  rSSMCloudFrontDomainName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "SSM Parameter for URL for website hosted on S3 via Cloudfront"
+      Name: !Join [ ".", [ "AMORPHIC", "AI", "INFRA", "CLOUDFRONTDOMAINNAME" ] ]
+      Type: String
+      Value: !Join ["",["https://", !GetAtt [rCloudFront, DomainName]]]
+      Tags:
+        Name: !Join [ "-", [ !Ref pSSMProjectShortName, !Ref pSSMVerticalName, !Ref pSSMEnvironment, !Join [ ".", [ "AMORPHIC", "AI", "INFRA", "CLOUDFRONTDOMAINNAME" ] ] ] ]
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref "AWS::Region"
+  rSSMWorkspaceRetrievalMaxResults:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "SSM Parameter for max results for workspace retrieval"
+      Name: !Join [ ".", [ "AMORPHIC", "AI", "CONFIG", "WORKSPACE_RETRIEVAL_MAXRESULTS" ] ]
+      Type: String
+      Value: 15
+      Tags:
+        Name: !Join [ "-", [ !Ref pSSMProjectShortName, !Ref pSSMVerticalName, !Ref pSSMEnvironment, !Join [ ".", [ "AMORPHIC", "AI", "CONFIG", "WORKSPACE_RETRIEVAL_MAXRESULTS" ] ] ] ]
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref "AWS::Region"
+  rSSMCloudFrontDistributionId:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "SSM Parameter for Cloudfront Distribution ID"
+      Name: !Join [ ".", [ "AMORPHIC", "AI", "INFRA", "CLOUDFRONTDISTRIBUTIONID" ] ]
+      Type: String
+      Value: !Ref rCloudFront
+      Tags:
+        Name: !Join [ "-", [ !Ref pSSMProjectShortName, !Ref pSSMVerticalName, !Ref pSSMEnvironment, !Join [ ".", [ "AMORPHIC", "AI", "INFRA", "CLOUDFRONTDISTRIBUTIONID" ] ] ] ]
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMLogsBucketName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "SSM Parameter for logs bucket"
+      Name: !Join [ ".", [ "AMORPHIC", "AI", "INFRA", "LOGSBUCKETNAME" ] ]
+      Type: String
+      Value: !Ref rLogsBucket
+      Tags:
+        Name: !Ref rLogsBucket
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  # One stringlist param for all role related params
+  rSSMLambdaExecRoles:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "SSM parameter for different iam roles"
+      Name: !Join [ ".", [ "AMORPHIC", "AI", "INFRA", "LAMBDAEXECROLES" ] ]
+      Type: StringList
+      Value: !Join
+               - ','
+               - - !GetAtt rWorkspacesLambdaRole.Arn
+                 - !GetAtt rChatbotsLambdaRole.Arn
+                 - !GetAtt rEmbeddedChatbotsLambdaRole.Arn
+                 - !GetAtt rFileSyncEventPipeRole.Arn
+                 - !GetAtt rAIStatesExecutionRole.Arn
+                 - !GetAtt rCustomModelsRole.Arn
+                 - !GetAtt rAgentsRole.Arn
+                 - !GetAtt rPrebakedActionGroupLambdaExecRole.Arn
+
+      Tags:
+        Name: !Join [ "-", [ !Ref pSSMProjectShortName, !Ref pSSMVerticalName, !Ref pSSMEnvironment, !Join [ ".", [ "AMORPHIC", "AI", "INFRA", "LAMBDAEXECROLES" ] ] ] ]
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'

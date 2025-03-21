@@ -1,0 +1,28 @@
+.genericFormDisplay {
+  @apply flex flex-col lg:flex-row gap-4;
+
+  .card {
+    @apply my-4;
+    @apply shadow-none !important;
+  }
+
+  .widthThreeByTwelve {
+    @apply lg:w-3/12;
+  }
+
+  .widthTwoByTwelve {
+    @apply lg:w-2/12;
+  }
+}
+
+.formStyling {
+  @apply md:grid md:grid-cols-3 gap-4 md:gap-8;
+}
+
+.formStyling > div {
+  @apply mt-2 min-h-[3.8rem];
+}
+
+.fieldGrid {
+  @apply grid gap-x-14 gap-y-14 grid-cols-1 md:grid-cols-3 items-baseline;
+}

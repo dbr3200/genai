@@ -1,0 +1,11 @@
+.codeStyles {
+  @apply rounded p-1 my-1 bg-ashGray;
+
+  line-height: 2rem;
+}
+
+:global(.dark) {
+  .codeStyles {
+    @apply bg-dark;
+  }
+}

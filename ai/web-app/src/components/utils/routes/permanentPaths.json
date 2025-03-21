@@ -1,0 +1,308 @@
+{
+  "root": {
+    "parent": "",
+    "path": "/",
+    "permission": "any",
+    "name": "Home",
+    "icon": "atom"
+  },
+  "notFound": {
+    "parent": "root",
+    "path": "*",
+    "permission": "any",
+    "name": "Not Found",
+    "icon": "hand-paper"
+  },
+  "reset": {
+    "parent": "root",
+    "path": "reset",
+    "permission": "any",
+    "name": "",
+    "icon": "do-not-enter"
+  },
+  "notAuthorized": {
+    "parent": "root",
+    "path": "not-authorized",
+    "permission": "any",
+    "name": "Not Authorized",
+    "icon": "do-not-enter"
+  },
+  "logout": {
+    "parent": "root",
+    "path": "",
+    "permission": "any",
+    "name": "Logout",
+    "icon": "sign-out"
+  },
+  "auth": {
+    "parent": "root",
+    "path": "auth",
+    "permission": "any",
+    "name": "Auth",
+    "icon": "sign-in"
+  },
+  "test": {
+    "parent": "root",
+    "path": "/test",
+    "permission": "any",
+    "name": "Test Area"
+  },
+  "sso": {
+    "parent": "auth",
+    "path": "/amorphic-sso",
+    "permission": "any",
+    "name": "Validate SSO",
+    "icon": "sign-in"
+  },
+  "ssoInitiate": {
+    "parent": "sso",
+    "path": "/initiate",
+    "permission": "any",
+    "name": "SSO Initiate",
+    "icon": "sign-in"
+  },
+  "ssoCallback": {
+    "parent": "sso",
+    "path": "/callback",
+    "permission": "any",
+    "name": "SSO Callback",
+    "icon": "sign-in"
+  },
+  "login": {
+    "parent": "auth",
+    "path": "/login",
+    "permission": "any",
+    "name": "Login",
+    "icon": "sign-in"
+  },
+  "register": {
+    "parent": "auth",
+    "path": "/register",
+    "permission": "any",
+    "name": "Register",
+    "icon": "user-circle"
+  },
+  "verify": {
+    "parent": "auth",
+    "path": "/verify",
+    "permission": "any",
+    "name": "Verify",
+    "icon": "user-circle"
+  },
+  "forgotPassword": {
+    "parent": "auth",
+    "path": "/forgot-password",
+    "permission": "any",
+    "name": "Forgot Password",
+    "icon": "question"
+  },
+  "resetPassword": {
+    "parent": "auth",
+    "path": "/reset-password",
+    "permission": "any",
+    "name": "Reset Password"
+  },
+  "setupTOTP": {
+    "parent": "auth",
+    "path": "/setup-mfa",
+    "permission": "any",
+    "name": "Setup MFA"
+  },
+  "callback": {
+    "parent": "root",
+    "path": "callback",
+    "permission": "any",
+    "name": "Callback",
+    "icon": "sort-alt"
+  },
+  "workspaces": {
+    "parent": "root",
+    "description": "",
+    "path": "workspaces",
+    "permission": "any",
+    "name": "Workspaces",
+    "icon": "app-database",
+    "quickNavSearch": [
+      "Workspace",
+      "list Workspace"
+    ]
+  },
+  "newWorkspace": {
+    "parent": "workspaces",
+    "path": "/new",
+    "permission": "any",
+    "name": "New Workspace",
+    "icon": "app-database",
+    "quickNavSearch": [
+      "new workspace",
+      "create workspace",
+      "create"
+    ]
+  },
+  "models": {
+    "parent": "root",
+    "description": "",
+    "path": "models",
+    "permission": "any",
+    "name": "Models",
+    "icon": "custom-model",
+    "quickNavSearch": [
+      "models",
+      "List models"
+    ]
+  },
+  "newModel": {
+    "parent": "models",
+    "path": "/new",
+    "permission": "any",
+    "name": "New Custom Model",
+    "icon": "custom-model",
+    "quickNavSearch": [
+      "new custom model",
+      "create model",
+      "create"
+    ]
+  },
+  "chatbots": {
+    "parent": "root",
+    "description": "",
+    "path": "chatbots",
+    "permission": "any",
+    "name": "Chatbots",
+    "icon": "chat-bot",
+    "quickNavSearch": [
+      "chatbots",
+      "list chatbots"
+    ]
+  },
+  "newChatbot": {
+    "parent": "chatbots",
+    "path": "/new",
+    "permission": "any",
+    "name": "New Chatbot",
+    "icon": "chat-bot",
+    "quickNavSearch": [
+      "new chatbot",
+      "create chatbot",
+      "create"
+    ]
+  },
+  "agents": {
+    "parent": "root",
+    "description": "",
+    "path": "agents",
+    "permission": "any",
+    "name": "Agents",
+    "icon": "agent",
+    "quickNavSearch": []
+  },
+  "newAgent": {
+    "parent": "agents",
+    "path": "/new",
+    "permission": "any",
+    "name": "New Agent",
+    "icon": "agent",
+    "quickNavSearch": []
+  },
+  "listAgents": {
+    "parent": "agents",
+    "description": "",
+    "path": "/list",
+    "permission": "any",
+    "name": "Agents",
+    "icon": "agent",
+    "quickNavSearch": []
+  },
+  "libraries": {
+    "parent": "agents",
+    "description": "",
+    "path": "/libraries",
+    "permission": "any",
+    "name": "Libraries",
+    "icon": "etl-library",
+    "quickNavSearch": []
+  },
+  "newLibrary": {
+    "parent": "libraries",
+    "path": "/new",
+    "permission": "any",
+    "name": "New Library",
+    "icon": "etl-library",
+    "quickNavSearch": []
+  },
+  "actionGroups": {
+    "parent": "agents",
+    "description": "",
+    "path": "/action-groups",
+    "permission": "any",
+    "name": "Action Groups",
+    "icon": "favourite",
+    "quickNavSearch": []
+  },
+  "newActionGroup": {
+    "parent": "actionGroups",
+    "path": "/new",
+    "permission": "any",
+    "name": "New Action Group",
+    "icon": "favourite",
+    "quickNavSearch": []
+  },
+  "chat": {
+    "parent": "root",
+    "description": "",
+    "path": "chat",
+    "permission": "any",
+    "name": "Chat",
+    "icon": "msg",
+    "quickNavSearch": [
+      "Playground",
+      "chat sessions",
+      "sessions"
+    ]
+  },
+  "playground": {
+    "parent": "root",
+    "description": "",
+    "path": "playground",
+    "permission": "any",
+    "name": "Playground",
+    "icon": "msg",
+    "quickNavSearch": [
+      "Playground",
+      "chat sessions",
+      "sessions"
+    ]
+  },
+  "profileAndSettings": {
+    "parent": "root",
+    "path": "profile-and-settings",
+    "permission": "any",
+    "name": "Profile and Settings",
+    "icon": "settings",
+    "quickNavSearch": [
+      "profile",
+      "settings"
+    ],
+    "description": "Manage your process-flows, business rules, validations and insights."
+  },
+  "management": {
+    "parent": "root",
+    "description": "Manage your users, roles and permissions",
+    "path": "management",
+    "permission": "any",
+    "name": "Management",
+    "icon": "management",
+    "quickNavSearch": [
+      "management",
+      "users",
+      "roles",
+      "permissions"
+    ]
+  },
+  "embeddedChatbot": {
+    "parent": "root",
+    "path": "/embedded-chatbot",
+    "permission": "any",
+    "name": "Embedded Chatbot"
+  }
+}

@@ -1,0 +1,63 @@
+.sweetalertContainer {
+  z-index: 1080;
+
+  .confirmButton {
+    @apply bg-regalBlue font-bold mx-3 text-white py-3 px-6 rounded min-w-[2rem] hover:brightness-150 mb-2 break-all;
+  }
+
+  .cancelButton {
+    @apply bg-ashGray mx-3 font-bold text-black border py-3 px-6 rounded min-w-[2rem] hover:bg-transparent mb-2;
+    @apply break-all;
+  }
+
+  .htmlContainer {
+    @apply bg-white text-black z-[1080];
+  }
+
+  .title {
+    border-bottom-width: 2px;
+    border-color: #e8e8e8;
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    padding: 0.75rem;
+    text-align: left;
+    color: #000;
+    font-weight: normal;
+  }
+
+  :global(.swal2-icon-show) ~ .title {
+    border: inherit;
+    position: relative;
+    max-width: 100%;
+    margin: 0;
+    padding: 0.8em 1em 0;
+    color: inherit;
+    font-size: 1.875em;
+    font-weight: 600;
+    text-align: center;
+    text-transform: none;
+    word-wrap: break-word;
+  }
+}
+
+:global(.dark) {
+  .sweetalertContainer {
+    @apply text-platinum;
+
+    .popup {
+      @apply bg-dark2;
+    }
+
+    .htmlContainer {
+      @apply bg-dark2 text-platinum;
+    }
+
+    .cancelButton {
+      @apply text-platinum bg-dark3 hover:bg-dark3 hover:brightness-150;
+    }
+
+    .title {
+      @apply text-platinum;
+    }
+  }
+}

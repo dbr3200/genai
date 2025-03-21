@@ -1,0 +1,16 @@
+.timeStampBtn {
+  @apply flex items-center tracking-tight bg-none gap-1;
+
+  color: inherit;
+  font-size: inherit;
+
+  svg {
+    @apply fill-current;
+  }
+}
+
+:global(.dark) {
+  .timeStampBtn {
+    @apply text-platinum;
+  }
+}

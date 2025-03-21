@@ -1,0 +1,7 @@
+.ctaButton {
+  @apply bg-primary-300 font-poppins text-primary-50 font-normal px-3;
+}
+
+.detailsContainer {
+  @apply bg-white p-4 h-full flex flex-col md:flex-row gap-2 items-start;
+}

@@ -1,0 +1,7 @@
+.imagePreview {
+  @apply h-full aspect-auto overflow-auto;
+
+  [class~="p-image-preview-indicator"] {
+    @apply h-8;
+  }
+}

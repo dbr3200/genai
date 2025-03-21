@@ -1,0 +1,75 @@
+.navBody {
+  @apply w-full bg-white h-16;
+
+  .navPadding {
+    @apply px-3 relative py-3;
+  }
+
+  .navFlex {
+    @apply flex items-center justify-between;
+  }
+
+  .avatar {
+    @apply flex text-sm rounded-full bg-slate-100;
+  }
+}
+
+.searchContainer {
+  @apply relative rounded-2xl w-[397px] flex mr-auto pl-[2rem] items-center;
+
+  .searchBox {
+    @apply h-10 block bg-primary w-full rounded-md border-0 py-0.5 pl-8 text-secondary-200;
+    @apply placeholder:text-secondary-200 focus:ring-1 focus:ring-inset focus:ring-indigo-600;
+  }
+}
+
+.menuContainer {
+  @apply z-50 rounded-lg absolute top-[68%] right-[1%] shadow-[0_4px_20px_0px_rgba(0,0,0,0.2)];
+  @apply my-4 text-base list-none bg-white divide-y;
+
+  .menuOption {
+    @apply flex items-center h-12 hover:bg-primary-50 px-4 cursor-pointer;
+  }
+
+  .menuDivider {
+    @apply w-11 h-6 bg-gray peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full;
+  }
+}
+
+.name {
+  @apply flex text-sm text-[#363636] font-medium;
+}
+
+.role {
+  @apply flex text-sm text-primary-300 font-normal;
+}
+
+:global(.dark) {
+  .navBody {
+    @apply bg-secondary-450;
+  }
+
+  .searchBox {
+    @apply bg-secondary-350 text-primary-50 placeholder:text-primary-50;
+  }
+
+  .role {
+    @apply text-secondary-150;
+  }
+
+  .name {
+    @apply text-primary-50;
+  }
+
+  .avatar {
+    @apply bg-secondary-150;
+  }
+
+  .menuContainer {
+    @apply bg-secondary-400;
+  }
+
+  .menuOption {
+    @apply text-primary-50 hover:text-primary-300 hover:bg-secondary-350;
+  }
+}

@@ -1,0 +1,72 @@
+{
+    "DEFAULT_LANGUAGE": [
+        {
+            "value": "en",
+            "label": "English"
+        }
+    ],
+    "PREFERENCES_SORT_ORDER": [
+        {
+            "value": "asc",
+            "label": "Asc"
+        },
+        {
+            "value": "desc",
+            "label": "Desc"
+        }
+    ],
+    "PREFERENCES_SORT_BY": [
+        {
+            "value": "Name",
+            "label": "Name"
+        },
+        {
+            "value": "LastModifiedTime",
+            "label": "Last Modified Time"
+        },
+        {
+            "value": "CreatedBy",
+            "label": "Created By"
+        },
+        {
+            "value": "CreationTime",
+            "label": "Creation Time"
+        },
+        {
+            "value": "Status",
+            "label": "Status"
+        }
+    ],
+    "PREFERENCES_RESULTS_NO": [
+        {
+            "value": 12,
+            "label": "12"
+        },
+        {
+            "value": 24,
+            "label": "24"
+        },
+        {
+            "value": 50,
+            "label": "50"
+        },
+        {
+            "value": 100,
+            "label": "100"
+        }
+    ],
+    "DEFAULT_SORT_PREFERENCE": {
+        "sortBy": "Name",
+        "sortOrder": "asc",
+        "resultsPerPage": 12
+    },
+    "COPYRIGHT_MESSAGE": "© Amorphic AI. 2023",
+    "RESERVED_TENANT_NAMES": [
+        "default",
+        "public",
+        "null",
+        "notnull",
+        "false",
+        "true"
+    ]
+}

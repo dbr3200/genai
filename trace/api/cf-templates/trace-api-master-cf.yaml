@@ -1,0 +1,326 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Transform: ['AWS::Serverless-2016-10-31']
+
+Description: To Deploy TRACE API related resources
+
+Globals:
+  Function:
+    LoggingConfig:
+      ApplicationLogLevel: INFO
+      LogFormat: JSON
+    Environment:
+      Variables:
+        awsRegion: !Ref 'AWS::Region'
+        projectShortName: !Ref pSSMProjectShortName
+        environment: !Ref pSSMEnvironment
+        verticalName: !Ref pSSMVerticalName
+        userPoolId: !Ref pSSMUserPoolId
+        enableIDP: !Ref pSSMEnableIDP
+        AWS_USE_FIPS_ENDPOINT: !If [ cIsFIPSEnabled, 'True', 'False' ]
+  Api:
+    OpenApiVersion: 3.0.1
+
+Parameters:
+  pSSMArtifactsPrefixPlaceholder:
+    Description: Core bucket prefix for storing the Artifacts
+    Type: String
+  pSSMS3BucketsName:
+    Description: Contains list of names of s3 buckets
+    Type: AWS::SSM::Parameter::Value<List<String>>
+    Default: AMORPHIC.CONFIG.BUCKETLIST
+  pSSMEnvironment:
+    Description: Environment
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.ENVIRONMENT
+  pSSMProjectShortName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.PROJECTSHORTNAME
+  pSSMVerticalsPrivateSubnet1ID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Verticals Private subnet 1 ID
+    Default: AMORPHIC.VPC.VERTICALSPRIVATESUBNET1ID
+  pSSMVerticalsPrivateSubnet2ID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Verticals Private subnet 2 ID
+    Default: AMORPHIC.VPC.VERTICALSPRIVATESUBNET2ID
+  pSSMLambdaSG:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.SECURITY.LAMBDASECURITYGROUP
+  pSSMProjectName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.PROJECTNAME
+  pSSMVerticalName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.TRACE.CONFIG.VERTICALNAME
+  pSSMEnableWAF:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Flag to deploy the WAF resources or not
+    Default: AMORPHIC.CONFIG.ENABLEWAF
+  pSSMWebACLId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.WEB.WAFREGIONALWEBACL
+  pSSMAccessLogsFormat:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.ACCESSLOGSSFORMAT
+  pSSMKMSKeysList:
+    Type: AWS::SSM::Parameter::Value<List<String>>
+    Description: Customer Owned Customer managed key list
+    Default: AMORPHIC.COREBUCKET.KMSKEYSLIST
+  pSSMTRACELambdaECRRepositoryUri:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: URI for TRACE Lambda ECR Repository
+    Default: AMORPHIC.COREBUCKET.LAMBDAECRREPOSITORY
+  pWorkingDirectory:
+    Type: String
+    Default: /var/task/
+  # The pSSMTRACELambdaECRTag parameter is to uniquely distiguish TRACE Lambda image with dynamic tagging
+  # This ensures that changes made to the Lambda will be pushed to ECR along with Amorphic version change
+  # This parameter will be overridden with the BITBUCKET_COMMIT for internal deployments
+  pSSMTRACELambdaECRTag:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.VERSION
+  pSSMEnableFips:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: FIPS Service Endpoints Enabled
+    Default: AMORPHIC.CONFIG.ENABLEFIPS
+  pSSMAPICustomDomainName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.TRACE.CONFIG.APICUSTOMDOMAINNAME
+  pSSMSSLCertificateArn:
+    Description: Certificate Arn for TRACE
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.TRACE.CONFIG.ACMCERTIFICATEARN
+  pSSMTraceALBCustomDomain:
+    Description: Custom domain of Trace ALB
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.TRACE.CONFIG.ALBCUSTOMDOMAINALIAS
+  pSSMGrafanaSecretKMSKey:
+    Description: Grafana Admin Secret KMS key ID
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.TRACE.INFRA.GRAFANASECRETKMSKEY
+  pSSMUserPoolId:
+    Description: Amorphic Cognito User Pool Id
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.COGNITO.USERPOOLID
+  pSSMEnableIDP:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.ENABLEIDP
+  pSSMDDBDeletionProtectionEnable:
+    Description: DeletionProtectionEnable Property for DB
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.DELETIONPROTECTIONENABLE
+Conditions:
+  cEnableWAF: !Equals
+    - !Ref pSSMEnableWAF
+    - "yes"
+  cIsFIPSEnabled: !Equals
+    - !Ref pSSMEnableFips
+    - "yes"
+  cEnableDeletionProtection: !Equals
+    - !Ref pSSMDDBDeletionProtectionEnable
+    - "yes"
+Resources:
+  # API Gateway related resources for Trace
+  rApiGatewayCustomDomain:
+    Type: AWS::ApiGateway::DomainName
+    Condition: cIsFIPSEnabled
+    Properties:
+      DomainName: !Ref pSSMAPICustomDomainName
+      EndpointConfiguration:
+        Types:
+          - EDGE
+      SecurityPolicy: TLS_1_2
+      CertificateArn: !Ref pSSMSSLCertificateArn
+      Tags:
+        - Key: Name
+          Value: !Join [ "-", [ !Ref pSSMProjectName, !Ref pSSMEnvironment, "TRACE", "APICustomDomain" ] ]
+        - Key: Environment
+          Value: !Ref pSSMEnvironment
+        - Key: Region
+          Value: !Ref 'AWS::Region'
+
+  # Custom domain mapping with API Gateway
+  rApiGatewaystagingBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Condition: cIsFIPSEnabled
+    Properties:
+      DomainName: !Ref rApiGatewayCustomDomain
+      RestApiId: !Ref rApiGateway
+      Stage: !Ref pSSMEnvironment
+
+  rApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-apigw-logs"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-ApiLogGroup"
+        - Key: "Environment"
+          Value: !Ref pSSMEnvironment
+        - Key: "Region"
+          Value: !Ref 'AWS::Region'
+
+  rApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      AlwaysDeploy: true
+      DefinitionUri:
+        Bucket: !Select [ 14, !Ref pSSMS3BucketsName ]
+        Key: !Sub "${pSSMArtifactsPrefixPlaceholder}/verticals/trace/api-def/trace-api-definition.yaml"
+      AccessLogSetting:
+        DestinationArn: !GetAtt rApiLogGroup.Arn
+        Format: !Ref pSSMAccessLogsFormat
+      MethodSettings:
+        - HttpMethod: "*"
+          LoggingLevel: INFO
+          MetricsEnabled: true
+          ResourcePath: "/*"
+      StageName: !Ref pSSMEnvironment
+
+  rApiWebACLAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    Condition: cEnableWAF
+    Properties:
+      ResourceArn: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/restapis/${rApiGateway}/stages/${rApiGateway.Stage}"
+      WebACLArn: !Ref pSSMWebACLId
+
+  # Dynamo DB Tables
+  rTraceDashboardsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "DashboardId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "DashboardId"
+          KeyType: "HASH"
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Select [8, !Ref pSSMKMSKeysList]
+        SSEType: KMS
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-traceDashboardsTable"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+      - Key: BackupEnabled
+        Value: "yes"
+      DeletionProtectionEnabled: !If [cEnableDeletionProtection, true, !Ref "AWS::NoValue"]
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  # Serverless functions
+  rTraceDashboardsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${pSSMTRACELambdaECRRepositoryUri}:trace-${pSSMTRACELambdaECRTag}"
+      ImageConfig:
+        Command: [ "trace-dashboards/traceDashboards.lambda_handler" ]
+        WorkingDirectory: !Sub "${pWorkingDirectory}trace-dashboards"
+      FunctionName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-traceDashboards"
+      Role: !GetAtt rTraceDashboardsLambdaRole.Arn
+      MemorySize: 128
+      Timeout: 30
+      VpcConfig:
+        SubnetIds:
+          - !Ref pSSMVerticalsPrivateSubnet1ID
+          - !Ref pSSMVerticalsPrivateSubnet2ID
+        SecurityGroupIds:
+          - !Ref pSSMLambdaSG
+      Environment:
+        Variables:
+          traceALBCustomDomain: !Ref pSSMTraceALBCustomDomain
+          grafanaAdminSecret: !Sub "${pSSMProjectShortName}-${pSSMEnvironment}-grafana_admin_secret"
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-traceDashboardsLambda"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  # Roles
+  rTraceDashboardsLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-TraceDashboardsLambda-Role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+      Policies:
+        - PolicyName: 'DashboardsLambdaPolicy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Sid: AllowNetworkInterfaceOperations
+              Effect: Allow
+              Action:
+                - ec2:CreateNetworkInterface
+                - ec2:DeleteNetworkInterface
+                - ec2:DescribeNetworkInterfaces
+                - ec2:DescribeSecurityGroups
+                - ec2:DescribeSubnets
+                - ec2:DescribeVpcs
+              Resource:
+                - '*'
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource:
+                - !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-*"
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+              Resource:
+                - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/AMORPHIC.TRACE.*'
+                - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/*'
+            - Effect: Allow
+              Action:
+                - "secretsmanager:GetSecretValue"
+              Resource: !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${pSSMProjectShortName}-${pSSMEnvironment}-grafana_admin_secret*"
+            - Effect: Allow
+              Action: 
+                - "kms:Decrypt"
+              Resource: 
+                - !Sub "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${pSSMGrafanaSecretKMSKey}"
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminGetUser
+                - cognito-idp:ListUsers
+              Resource:
+                - !Sub 'arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${pSSMUserPoolId}'
+      ManagedPolicyArns:
+      - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${pSSMProjectShortName}-GenericPermissionsPolicy"
+      - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${pSSMProjectShortName}-LogsPermissionsPolicy"
+
+  # SSM Params
+  rSSMApiGateway:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "Trace Api Gateway ID"
+      Name: "AMORPHIC.TRACE.API.APIGATEWAY"
+      Type: String
+      Value: !Ref rApiGateway
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-AMORPHIC.TRACE.API.APIGATEWAY"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  rSSMTraceDashboardsTable:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "SSM param for Trace Dashboards table"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/traceDashboardsTable"
+      Type: String
+      Value: !Ref rTraceDashboardsTable
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-traceDashboardsTable"

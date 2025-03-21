@@ -1,0 +1,23 @@
+{
+    "dataStoresDisplay": [
+        "Admins",
+        "Developers",
+        "Users"
+    ],
+    "pipelinesDisplay": [
+        "Admins",
+        "Developers",
+        "Users"
+    ],
+    "createPermission": [
+        "Admins",
+        "Developers"
+    ],
+    "templatesDisplay": [
+        "Admins",
+        "Developers"
+    ],
+    "managementDisplay": [
+        "Admins"
+    ]
+}

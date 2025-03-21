@@ -1,0 +1,186 @@
+@keyframes slide-left {
+  0% {
+    left: 0;
+  }
+
+  100% {
+    left: -14.4rem;
+  }
+}
+
+@keyframes slide-right {
+  0% {
+    left: -14.4rem;
+  }
+
+  100% {
+    left: 0;
+  }
+}
+
+.advancedSearchButton {
+  @apply w-52 p-2 flex gap-3 items-center bg-secondary-100 rounded shadow-inner;
+}
+
+.stickyContainer {
+  @apply min-h-[50px] sticky top-4;
+}
+
+.listContainer {
+  @apply w-full text-jetGray flex flex-col space-y-4 bg-white;
+
+  overflow-anchor: none;
+
+  .header {
+    @apply w-full p-4 pb-0 flex flex-row flex-wrap items-center gap-2;
+
+    .resourceCountContainer {
+      @apply w-full shrink-0;
+    }
+
+    .searchBar {
+      @apply w-52;
+    }
+  }
+
+  .list {
+    @apply flex flex-col w-full overscroll-contain;
+
+    [class~="adp-ctaMdContainer"] {
+      @apply space-s-2;
+    }
+
+    &:not(.scroll) {
+      @apply border-y border-platinum;
+    }
+  }
+}
+
+.compactListContainer {
+  @apply relative h-[85vh];
+
+  animation: slide-right 0.5s forwards;
+
+  .compactList {
+    @apply w-full h-full text-jetGray flex flex-col bg-white rounded-te-md rounded-be-md;
+
+    .header {
+      @apply p-4 flex flex-row items-center;
+
+      .searchBar {
+        @apply w-52;
+      }
+    }
+
+    .list {
+      @apply flex flex-col divide-y divide-platinum;
+
+      a.listItem {
+        @apply px-3 py-3 flex items-center justify-between w-full break-all gap-1 border-b border-platinum;
+
+        &:hover,
+        &.active {
+          @apply bg-chalkGray;
+        }
+
+        &.active {
+          @apply bg-ashGray font-robotoBold;
+        }
+      }
+
+      a.listItem:last-of-type {
+        @apply border-b-0;
+      }
+    }
+
+    .scroll {
+      @apply max-h-[70vh];
+    }
+  }
+
+  .compactList.collapsedCompactView {
+    @apply z-10;
+
+    .header {
+      @apply invisible;
+    }
+
+    .scroll {
+      @apply invisible;
+    }
+  }
+
+  .toggleCollapseBtn {
+    @apply absolute p-2 rounded-md top-[2.38rem] start-auto -inset-4 h-min;
+    @apply bg-white hover:bg-white z-20;
+
+    .icon {
+      @apply text-amorphicBlue hover:brightness-125;
+    }
+  }
+
+  .collapsedBtn {
+    @apply rotate-180 end-auto inset-0 h-[85vh] bg-chalkGray shadow-md;
+  }
+
+  .toggleCollapseBtn.collapsedBtn {
+    @apply -right-4 ps-1 rounded-none rounded-ts-md rounded-bs-md;
+  }
+
+  .collapsedPagination {
+    @apply invisible;
+  }
+}
+
+.collapsed {
+  @apply min-w-[19.2rem] absolute;
+
+  animation: slide-left 0.5s forwards;
+}
+
+.paginationInfo {
+  @apply bg-white w-full px-4 flex justify-between items-center flex-wrap gap-4;
+}
+
+:global(.dark) {
+  .listContainer {
+    @apply bg-dark2 text-platinum border-darkBorder;
+
+    .list {
+      &:not(.scroll) {
+        @apply border-y border-darkBorder;
+      }
+    }
+  }
+
+  .compactListContainer {
+    .compactList {
+      @apply bg-dark2 text-platinum;
+
+      .list {
+        @apply border-b border-darkBorder divide-y divide-darkBorder;
+
+        a.listItem {
+          @apply border-darkBorder;
+        }
+
+        a.listItem:hover,
+        a.listItem.active {
+          @apply bg-dark3;
+        }
+      }
+    }
+
+    .toggleCollapseBtn {
+      @apply bg-dark3;
+    }
+  }
+
+  .paginationInfo {
+    @apply bg-dark2;
+  }
+
+  .advancedSearchButton {
+    @apply bg-dark text-secondary-200;
+  }
+}

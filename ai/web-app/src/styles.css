@@ -1,0 +1,164 @@
+@import "@amorphic/amorphic-ui-core/dist/css/fonts.min.css";
+@import "@amorphic/amorphic-ui-core/dist/css/index.min.css";
+@import "tailwindcss/utilities";
+
+:root {
+  html {
+    font-size: 16px;
+  }
+
+  .adp-outline {
+    outline: 2px auto rgb(var(--color-primary-200));
+    outline-offset: 3px;
+  }
+
+  .adp-dark .adp-card {
+    background-color: #15171a;
+  }
+}
+
+body {
+  @apply text-secondary-400 text-sm !font-robotoRegular;
+
+  .btn {
+    @apply min-w-[6rem];
+  }
+
+  .btn.btn-auto-width {
+    @apply !min-w-min;
+  }
+
+  .btn.btn-primary {
+    @apply bg-primary-300 hover:bg-primary-300 text-white;
+  }
+
+  .btn.btn-info {
+    @apply bg-primary-200 hover:bg-primary-200;
+  }
+
+  .btn.btn-danger {
+    @apply bg-danger hover:bg-danger text-white;
+  }
+
+  .btn.btn-success {
+    @apply bg-success hover:bg-success;
+  }
+
+  .btn.btn-secondary {
+    @apply bg-secondary-300 hover:bg-secondary-300 text-white;
+  }
+
+  .react-pdf__Page__canvas {
+    margin: 0 auto;
+  }
+
+  .react-pdf__Page__annotations,
+  .react-pdf__Page__textContent {
+    @apply !h-0 !w-0;
+  }
+
+  .p-inputtext {
+    @apply !p-1.5;
+  }
+
+  .p-column-filter-buttonbar {
+    button {
+      @apply text-secondary-400 border !border-current !py-1;
+    }
+  }
+}
+
+main .gradient {
+  @apply bg-gradient-to-b from-[#002c59] via-[#0676e1] to-gray dark:to-slate-600;
+}
+
+main .gradient .breadcrumbs {
+  @apply text-[#edf2f7] hover:text-[#f7fafc];
+}
+
+main.bg .gradient {
+  @apply bg-none;
+}
+
+main.bg .gradient .breadcrumbs {
+  @apply text-[#2d3748] hover:text-[#4a5568];
+}
+
+.logoContainer {
+  @apply rounded-full border;
+
+  background: linear-gradient(145deg, #e0edfc, #fff);
+  box-shadow: 10px 10px 16px #e0e0e0, -13px -13px 6px #fff;
+}
+
+.adp-v2 {
+  /* ---------- V2 Colors --------- */
+
+  /* Primary */
+  --ghost-white: 244, 247, 250;
+  --icy-blue: 236, 242, 248;
+  --light-steel-blue: 234, 244, 255;
+  --light-sky-blue: 180, 204, 232;
+  --sky-blue: 81, 184, 236;
+  --dodger-blue: 6, 118, 231;
+  --royal-blue: 23, 81, 134;
+
+  /* stylelint-disable-next-line custom-property-empty-line-before */
+  --color-primary: var(--ghost-white);
+  --color-primary-50: var(--icy-blue);
+  --color-primary-100: var(--light-steel-blue);
+  --color-primary-150: var(--light-sky-blue);
+  --color-primary-200: var(--sky-blue);
+  --color-primary-250: var(--dodger-blue);
+  --color-primary-300: var(--royal-blue);
+
+  /* Secondary */
+  --azure-white: 249, 251, 253;
+  --snow: 248, 248, 248;
+  --light-gray: 232, 232, 232;
+  --silver: 175, 175, 175;
+  --dark-gray: 77, 77, 77;
+  --dim-gray: 54, 54, 54;
+  --charcoal: 49, 50, 64;
+  --ebony: 34, 35, 40;
+  --black: 29, 29, 33;
+  --eerie-black: 21, 23, 26;
+  --jet-black: 9, 9, 9;
+
+  /* stylelint-disable-next-line custom-property-empty-line-before */
+  --color-secondary: var(--azure-white);
+  --color-secondary-50: var(--snow);
+  --color-secondary-100: var(--light-gray);
+  --color-secondary-150: var(--silver);
+  --color-secondary-200: var(--dark-gray);
+  --color-secondary-250: var(--dim-gray);
+  --color-secondary-300: var(--charcoal);
+  --color-secondary-350: var(--ebony);
+  --color-secondary-400: var(--black);
+  --color-secondary-450: var(--eerie-black);
+  --color-secondary-500: var(--jet-black);
+
+  /* Success */
+  --turquoise: 3, 218, 198;
+  --lime-green: 37, 231, 6;
+  --forest-green: 3, 91, 12;
+
+  /* stylelint-disable-next-line custom-property-empty-line-before */
+  --color-success: var(--turquoise);
+  --color-success-50: var(--lime-green);
+  --color-success-100: var(--forest-green);
+
+  /* Warning */
+  --goldenrod: 238, 195, 83;
+
+  /* stylelint-disable-next-line custom-property-empty-line-before */
+  --color-warning: var(--goldenrod);
+
+  /* Danger */
+  --crimson-red: 159, 19, 19;
+  --salmon: 255, 134, 107;
+
+  /* stylelint-disable-next-line custom-property-empty-line-before */
+  --color-danger: var(--crimson-red);
+  --color-danger-50: var(--salmon);
+}

@@ -1,0 +1,426 @@
+---
+# https://docs.aws.amazon.com/apigateway/latest/developerguide/import-api-aws-variables.html -> We can reference AWS Psuedo Parameters directly in Swagger file
+swagger: "2.0"
+
+info:
+  description: "Amorphic Trace - API Definition documentation"
+  version: "productversion_placeholder"
+  title: "apigateway_title_placeholder"
+
+tags:
+- name: "Trace"
+  description: "APIs related to Observability and Dashboards."
+
+schemes:
+- "https"
+
+securityDefinitions:
+  LambdaAuthorizer:
+    type: "apiKey"
+    name: "Authorization"
+    in: "header"
+    x-amazon-apigateway-authtype: "oauth2"
+    x-amazon-apigateway-authorizer:
+      type: "request"
+      identitySource: "method.request.header.Authorization"
+      authorizerUri: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:projectshortname_placeholder-environment_placeholder-v2-authorizerLambda:environment_placeholder/invocations"
+      authorizerCredentials: "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambdaexecrole_placeholder"
+      authorizerResultTtlInSeconds: 30
+
+paths:
+  /tracedashboards:
+    get:
+      tags:
+      - "Trace"
+      summary: "List details of all Trace dashboards"
+      description: "List details of all Trace dashboards"
+      produces:
+      - "application/json"
+      consumes:
+      - "application/json"
+      responses:
+        200:
+          description: "Successful API response"
+          schema:
+            $ref: "#/definitions/DashBoardsDetails"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Headers:
+              type: "string"
+        400:
+          description: "Invalid input"
+          schema:
+            $ref: "#/definitions/Error"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Headers:
+              type: "string"
+        500:
+          description: "Something went wrong at backend"
+          schema:
+            $ref: "#/definitions/Error"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Headers:
+              type: "string"
+      security:
+      - LambdaAuthorizer: []
+      x-amazon-apigateway-request-validator: "ValidateAll"
+      x-amazon-apigateway-integration:
+        credentials: "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/projectshortname_placeholder-APIGateway-Lambda-ExecutionRole"
+        uri: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:projectshortname_placeholder-verticalname_placeholder-environment_placeholder-traceDashboards/invocations"
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: "when_no_match"
+        httpMethod: "POST"
+        contentHandling: "CONVERT_TO_TEXT"
+        type: "aws_proxy"
+    post:
+      tags:
+      - "Trace"
+      summary: "Add a new Trace dashboard"
+      description: "Add a new Trace dashboard"
+      produces:
+      - "application/json"
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "NewDashboardBody"
+        in: "body"
+        required: true
+        schema:
+          $ref: "#/definitions/DashBoardInputBody"
+      responses:
+        200:
+          description: "Successful API response"
+          schema:
+            $ref: "#/definitions/Status"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Headers:
+              type: "string"
+        400:
+          description: "Invalid input"
+          schema:
+            $ref: "#/definitions/Error"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Headers:
+              type: "string"
+        500:
+          description: "Something went wrong at backend"
+          schema:
+            $ref: "#/definitions/Error"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Headers:
+              type: "string"
+      security:
+      - LambdaAuthorizer: []
+      x-amazon-apigateway-request-validator: "ValidateAll"
+      x-amazon-apigateway-integration:
+        credentials: "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/projectshortname_placeholder-APIGateway-Lambda-ExecutionRole"
+        uri: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:projectshortname_placeholder-verticalname_placeholder-environment_placeholder-traceDashboards/invocations"
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: "when_no_match"
+        httpMethod: "POST"
+        contentHandling: "CONVERT_TO_TEXT"
+        type: "aws_proxy"
+    options:
+      tags:
+      - "Options"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "200 response"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Headers:
+              type: "string"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: "when_no_match"
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: "mock"
+  /tracedashboards/{id}:
+    get:
+      tags:
+      - "Trace"
+      summary: "Get a Trace dashboard details"
+      description: "Get a Trace dashboard details"
+      produces:
+      - "application/json"
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Successful API response"
+          schema:
+            $ref: "#/definitions/DashBoardItem"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Headers:
+              type: "string"
+        400:
+          description: "Invalid input"
+          schema:
+            $ref: "#/definitions/Error"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Headers:
+              type: "string"
+        500:
+          description: "Something went wrong at backend"
+          schema:
+            $ref: "#/definitions/Error"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Headers:
+              type: "string"
+      security:
+      - LambdaAuthorizer: []
+      x-amazon-apigateway-request-validator: "ValidateAll"
+      x-amazon-apigateway-integration:
+        credentials: "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/projectshortname_placeholder-APIGateway-Lambda-ExecutionRole"
+        uri: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:projectshortname_placeholder-verticalname_placeholder-environment_placeholder-traceDashboards/invocations"
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: "when_no_match"
+        httpMethod: "POST"
+        contentHandling: "CONVERT_TO_TEXT"
+        type: "aws_proxy"
+    delete:
+      tags:
+      - "Trace"
+      summary: "Delete a Trace dashboard"
+      description: "Delete a Trace dashboard"
+      produces:
+      - "application/json"
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Successful API response"
+          schema:
+            $ref: "#/definitions/Status"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Headers:
+              type: "string"
+        400:
+          description: "Invalid input"
+          schema:
+            $ref: "#/definitions/Error"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Headers:
+              type: "string"
+        500:
+          description: "Something went wrong at backend"
+          schema:
+            $ref: "#/definitions/Error"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Headers:
+              type: "string"
+      security:
+      - LambdaAuthorizer: []
+      x-amazon-apigateway-request-validator: "ValidateAll"
+      x-amazon-apigateway-integration:
+        credentials: "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/projectshortname_placeholder-APIGateway-Lambda-ExecutionRole"
+        uri: "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:projectshortname_placeholder-verticalname_placeholder-environment_placeholder-traceDashboards/invocations"
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: "when_no_match"
+        httpMethod: "POST"
+        contentHandling: "CONVERT_TO_TEXT"
+        type: "aws_proxy"
+    options:
+      tags:
+      - "Options"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "200 response"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Headers:
+              type: "string"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'GET,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: "when_no_match"
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: "mock"
+
+definitions:
+  Status:
+    type: "object"
+    properties:
+      Message:
+        type: "string"
+    title: "Status"
+  Error:
+    type: "object"
+    properties:
+      Message:
+        type: "string"
+    title: "Error"
+  DashBoardsDetails:
+    title: "DashBoardsDetails"
+    type: "object"
+    properties:
+      Dashboards:
+        type: "array"
+        items:
+          $ref: "#/definitions/DashBoardItem"
+  DashBoardItem:
+    type: "object"
+    properties:
+      DashboardId:
+        type: "string"
+      DashboardName:
+        type: "string"
+      DashboardDescription:
+        type: "string"
+      CreatedBy:
+        type: "string"
+      CreationTime:
+        type: "string"
+  DashBoardInputBody:
+    type: "object"
+    properties:
+      DashboardId:
+        type: "string"
+
+x-amazon-apigateway-gateway-responses:
+  DEFAULT_4XX:
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Methods: "'POST,OPTIONS,PUT,GET'"
+      gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+      gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    responseTemplates:
+      "application/json": "{\"Message\": $context.error.messageString}"
+  DEFAULT_5XX:
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Methods: "'POST,OPTIONS,PUT,GET'"
+      gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+      gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    responseTemplates:
+      "application/json": "{\"Message\": $context.error.messageString}"
+  ACCESS_DENIED:
+    statusCode: "403"
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Methods: "'OPTIONS,GET,PUT,POST,DELETE'"
+      gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+      gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    responseTemplates:
+      "application/json": "{\"Message\": \"$context.authorizer.message\"}"
+x-amazon-apigateway-request-validators:
+  Validate body:
+    validateRequestParameters: false
+    validateRequestBody: true
+  Validate query string parameters and headers:
+    validateRequestParameters: true
+    validateRequestBody: false
+  Validate body, query string parameters, and headers:
+    validateRequestParameters: true
+    validateRequestBody: true
+  Validate body and headers:
+    validateRequestParameters: false
+    validateRequestBody: true
+  ValidateAll:
+    validateRequestParameters: true
+    validateRequestBody: true
+x-amazon-apigateway-binary-media-types:
+- "text/csv"
+- "application/octet-stream"

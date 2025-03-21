@@ -1,0 +1,9 @@
+.actionIcon {
+  @apply flex items-center justify-center w-7 h-7 rounded-full bg-primary-100;
+}
+
+:global(.dark) {
+  .actionIcon {
+    @apply bg-secondary-350;
+  }
+}

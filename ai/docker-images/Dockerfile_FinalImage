@@ -1,0 +1,29 @@
+# Use ARG to define the detault base image, defined below is a placeholder
+ARG BASE_IMAGE=lambda_base_image_placeholder
+
+FROM ${BASE_IMAGE}
+WORKDIR /var/task
+
+# Label the version with commit sha OR release version
+LABEL cwdl.api.version="test"
+
+RUN echo "exclude=msodbcsql17-17.10.5.1-1.x86_64" >> /etc/dnf/dnf.conf &&  dnf update -y \
+  && dnf -y install gcc postgresql-devel
+
+# Copy the requirements file to download the libraries
+COPY ai/api/lambda-layer/requirements.txt ./
+RUN python3 -m pip install -r requirements.txt
+
+COPY ai/api/common-modules/*/*py $lambda_layer_modules_src_dir
+COPY ai/api/common-modules/*/*json $lambda_layer_modules_src_dir
+COPY ai/api/common-modules/*/*yaml $lambda_layer_modules_src_dir
+COPY ai/api/common-modules/report-util/amorphic.jpeg $lambda_layer_modules_src_dir
+
+# Copy the codebase to the app directory
+COPY ai/api/lambda ./
+
+# This would prohibits to use interactive shell on the container
+RUN echo 'echo "Cloudwick prohibits you to use interactive shell"' > ~/.bashrc && echo "exit" >> ~/.bashrc
+RUN sed -i -e '1s|^#!/bin/sh|#!/bin/bash|' /lambda-entrypoint.sh && rm /bin/sh
+
+CMD [ "app/app.lambda_handler" ]

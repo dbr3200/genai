@@ -1,0 +1,59 @@
+.chatBubble {
+  @apply whitespace-pre-line w-full;
+
+  table {
+    @apply w-full table table-auto border;
+
+    td,
+    th {
+      @apply p-2;
+    }
+
+    tr:nth-child(1) {
+      @apply bg-primary-300 text-white text-start;
+    }
+
+    tr:nth-child(odd):not(:first-child) {
+      @apply bg-secondary-100;
+    }
+
+    tr:nth-child(even):not(:first-child) {
+      @apply bg-transparent;
+    }
+  }
+
+  code {
+    @apply flex p-2 bg-secondary-400 text-secondary-100 whitespace-break-spaces leading-6 !w-full select-all rounded-md;
+  }
+
+  img {
+    @apply aspect-auto w-full max-w-sm rounded-sm border border-secondary-100;
+  }
+
+  a {
+    @apply text-primary-300 underline;
+  }
+
+  b {
+    @apply font-bold;
+  }
+
+  ol {
+    @apply list-decimal;
+  }
+
+  [class~="highlight"] {
+    @apply inline px-1.5 py-0.5 bg-warning bg-opacity-50 text-secondary-300 rounded-md;
+  }
+}
+
+:global {
+  .msgSection {
+    /* I wasn't able to remove the extra space in the card other than using flex flex-col */
+    @apply rounded-md p-4 ps-8 border border-secondary-150 flex flex-col gap-4 w-full;
+
+    .header {
+      @apply font-bold flex items-end gap-2;
+    }
+  }
+}

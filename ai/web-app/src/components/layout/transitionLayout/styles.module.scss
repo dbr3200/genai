@@ -1,0 +1,59 @@
+.termsAndConditions {
+  @apply font-robotoRegular;
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-robotoBold my-2;
+  }
+
+  h5,
+  h6 {
+    @apply font-robotoMedium my-2;
+  }
+
+  h1 {
+    @apply text-3xl;
+  }
+
+  h2 {
+    @apply text-2xl;
+  }
+
+  h3 {
+    @apply text-xl;
+  }
+
+  h4 {
+    @apply text-base;
+  }
+
+  i {
+    @apply font-robotoItalic;
+  }
+}
+
+.acceptTermsContainer {
+  @apply flex items-center font-extrabold;
+}
+
+.buttonContainer {
+  @apply flex flex-wrap my-6 w-full justify-center items-center gap-4;
+
+  button {
+    @apply mx-1 px-12 font-robotoMedium;
+
+    &.declineButton {
+      @apply bg-salsa bg-opacity-90 hover:bg-opacity-75 !important;
+    }
+  }
+}
+
+.languageSelector {
+  @apply hidden p-1 border rounded-md hover:shadow-2xl hover:bg-platinum;
+}
+
+.markdownContainer {
+  @apply space-y-3 p-4;
+}

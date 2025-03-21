@@ -1,0 +1,33 @@
+.amorphicPanel {
+  @apply bg-white w-full h-screen flex flex-col;
+
+  .header {
+    @apply flex justify-between items-center p-4 shadow relative z-50;
+
+    .title {
+      @apply text-lg font-bold break-all w-full;
+    }
+  }
+
+  .body {
+    @apply p-4 overflow-scroll;
+  }
+
+  :global(.ps__rail-y) {
+    @apply !right-0 !left-auto rtl:!right-auto rtl:!left-0;
+  }
+
+  :global(.ps__rail-x) {
+    @apply !bottom-0 !top-auto;
+  }
+}
+
+:global(.dark) {
+  .amorphicPanel {
+    @apply bg-dark1;
+
+    .header {
+      @apply bg-dark2 shadow-md text-platinum;
+    }
+  }
+}

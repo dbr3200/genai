@@ -1,0 +1,8 @@
+{
+    "USERS_TABLE": "usersTable",
+    "SESSIONS_TABLE": "sessionsTable",
+    "SESSIONS_TABLE_SESSIONID_INDEX": "sessionsTable-sessionId-gsi",
+    "AMORPHIC_DATASET_TABLE": "amorphic-datasetTable",
+    "AMORPHIC_DATASET_TABLE_INDEX_NAME": "amorphic-datasetTable-domainName-gsi"
+}
+

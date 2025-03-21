@@ -1,0 +1,29 @@
+{
+  "PROJECT_NAME": "amorphic",
+  "PROJECT_SHORT_NAME": "azc",
+  "VERTICAL_NAME": "ai",
+  "ENVIRONMENT": "poc",
+  "VERSION": "2.5.1",
+  "region": "us-west-2",
+  "userPool": "us-west-2_7o3CYO8zA",
+  "identityPool": "us-west-2:904de0b4-fc04-45fd-941b-ab0caffe2283",
+  "parent_app_id": "dmk3q9o1xw6co",
+  "ENFORCE_COGNITO_MFA": "OFF",
+  "Domain": [
+      "*"
+  ],
+  "clientId": "1e2ebresbnbo9oabe5lc3njrsa",
+  "API_gateway": "https://api-genai-amorphic-poc.azcorrections.gov/",
+  "AMORPHIC_PORTAL_URL": "https://amorphic-poc.azcorrections.gov",
+  "ChatWebSocket_URL": "wss://xj962dl3el.execute-api.us-west-2.amazonaws.com/poc/",
+  "ChatbotWebSocket_URL": "wss://3pj9eijlo4.execute-api.us-west-2.amazonaws.com/poc/",
+  "AgentWebSocket_URL": "wss://vvwy4xd8jl.execute-api.us-west-2.amazonaws.com/poc/",
+  "APP_WEB_DOMAIN": "dmk3q9o1xw6co.auth.us-west-2.amazoncognito.com",
+  "TOKEN_SCOPES_ARRAY": [
+      "email",
+      "openid",
+      "profile"
+  ],
+  "IDENTITY_PROVIDER": "azcOktaIDP",
+  "ENABLE_IDP": "yes"
+}

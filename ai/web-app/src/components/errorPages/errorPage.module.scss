@@ -1,0 +1,9 @@
+.errorContainer {
+  @apply w-full h-full flex items-center justify-center;
+}
+
+:global(.dark) {
+  .errorContainer {
+    @apply text-secondary-100;
+  }
+}

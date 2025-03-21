@@ -1,0 +1,1004 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Amorphic dataset API's",
+        "version": "1.0.0",
+        "description": "APIs to get perform operations on Amorphic datasets."
+    },
+    "paths": {
+        "/datasets": {
+            "get": {
+                "summary": "List all the datasets the user has access to. Look for keywords like 'list'.",
+                "description": "List all the datasets the user has access to. Look for keywords like 'list'.",
+                "operationId": "getDatasets",
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "description": "Unique ID of the user. This is a non-mandatory parameter. If no value is passed, do not prompt. Continue with the request.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved list of all datasets.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "datasets": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Access denied. Unable to list another user's datasets.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "datasets": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a dataset. Look for keywords like 'create'. List out all the required parameters together and prompt the user to enter them. Do not assume any parameter values. Do not try to re-trigger the lambda or re-attempt creation of dataset. Return the response as it is.",
+                "description": "Create a dataset. Look for keywords like 'create'. List out all the required parameters together and prompt the user to enter them. Do not assume any parameter values. Do not try to re-trigger the lambda or re-attempt creation of dataset. Return the response as it is.",
+                "operationId": "createDataset",
+                "requestBody": {
+                    "description": "Request body for creating dataset.",
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "description": "Unique ID of the user. This is a non-mandatory parameter. If no value is passed, do not prompt. Continue with the request.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "datasetName",
+                        "in": "path",
+                        "description": "Unique name of the dataset. Do not assume any value if not provided by the user. Instead, request the user to provide the dataset name.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "domain",
+                        "in": "path",
+                        "description": "Name of the domain the dataset belongs to. Do not assume any value if not provided by the user. Instead, request the user to provide the domain name.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "datasourceType",
+                        "in": "path",
+                        "description": "Datasource type of the dataset. This parameter can take the values : api, jdbc, s3, external api or email. Do not assume any value if not provided by the user. Instead, request the user to provide the datasource type.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "fileType",
+                        "in": "path",
+                        "description": "File type of the dataset. This parameter can take the values csv, parquet, txt, xlsx, etc. Do not assume any value if not provided by the user. Instead, request the user to provide the file type.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "targetLocation",
+                        "in": "path",
+                        "description": "Target location of the dataset. This parameter can take the values S3, S3Athena, Redshift, Lakeformation or DynamoDB. Do not assume any value if not provided by the user. Instead, request the user to provide the target location.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "updateMethod",
+                        "in": "path",
+                        "description": "Update method of the dataset. This paramater can take the values append, reload or latest record. Do not assume any value if not provided by the user. Instead, request the user to provide the update method.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully created dataset.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Dataset name is already taken.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "402": {
+                        "description": "Invalid domain passed. Do not try to retrigger the lambda or do any further action. Return the response as it is.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Datasource type provided is currently not supported for dataset creation. Do not try to retrigger the lambda or do any further action. Return the response as it is.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Target location passed is not valid. Do not try to retrigger the lambda or do any further action. Return the response as it is.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Update method provided is currently not supported for dataset creation. Do not try to retrigger the lambda or do any further action as it is. Return the response.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "406": {
+                        "description": "Datasource type passed is not valid. Do not try to retrigger the lambda or do any further action as it is. Return the response.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "407": {
+                        "description": "Target location provided is currently not supported for dataset creation. Do not try to retrigger the lambda or do any further action as it is. Return the response.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "408": {
+                        "description": "Update method passed is not valid. Do not try to retrigger the lambda or do any further action as it is. Return the response.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "File type passed is not valid. Do not try to retrigger the lambda or do any further action as it is. Return the response.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "410": {
+                        "description": "Access denied. Unable to create a dataset for another user.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Clone a dataset. Look for keywords like 'clone'. Using the getDatasetDetails tool, fetch details of the dataset to clone from and use those details to fill in required the parameters for createDataset tool. New dataset's name should be '<source dataset name>_copy_<current epoch time>.",
+                "description": "Clone a dataset. Look for keywords like 'clone'. Using the getDatasetDetails tool, fetch details of the dataset to clone from and use those details to fill in required the parameters for createDataset tool. New dataset's name should be '<source dataset name>_copy_<current epoch time>.",
+                "operationId": "createDataset",
+                "requestBody": {
+                    "description": "Request body for cloning dataset.",
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "description": "Unique ID of the user. This is a non-mandatory parameter. If no value is passed, do not prompt. Continue with the request.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "datasetName",
+                        "in": "path",
+                        "description": "Name of the dataset to clone from.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "domain",
+                        "in": "path",
+                        "description": "Name of the domain the dataset belongs to. Do not assume any value if not provided by the user. Instead, request the user to provide the domain name.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "datasourceType",
+                        "in": "path",
+                        "description": "Datasource type of the dataset. This parameter can take the values : api, jdbc, s3, external api or email. Do not assume any value if not provided by the user. Instead, request the user to provide the datasource type.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "fileType",
+                        "in": "path",
+                        "description": "File type of the dataset. This parameter can take the values csv, parquet, txt, xlsx, etc. Do not assume any value if not provided by the user. Instead, request the user to provide the file type.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "targetLocation",
+                        "in": "path",
+                        "description": "Target location of the dataset. This parameter can take the values S3, S3Athena, Redshift, Lakeformation or DynamoDB. Do not assume any value if not provided by the user. Instead, request the user to provide the target location.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "updateMethod",
+                        "in": "path",
+                        "description": "Update method of the dataset. This paramater can take the values append, reload or latest record. Do not assume any value if not provided by the user. Instead, request the user to provide the update method.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully created dataset.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Dataset name is already taken. Try again with a different name.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "402": {
+                        "description": "Access denied. Unable to clone a dataset for another user.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/datasets/{dataset_name}": {
+            "get": {
+                "summary": "Get details of a specific dataset. User will give the dataset name in the input. Lookout for keywords like 'details'.",
+                "description": "Get details of a specific dataset. User will give the dataset name in the input. Lookout for keywords like 'details'.",
+                "operationId": "getDatasetDetails",
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "description": "Unique ID of the user. This is a non-mandatory parameter. If no value is passed, do not prompt. Continue with the request.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "datasetName",
+                        "in": "path",
+                        "description": "Name of the dataset",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "401": {
+                        "description": "Dataset entered by the user is not in the valid format.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "402": {
+                        "description": "No such dataset exists.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "User is not authorized to get the details of the dataset.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Access denied. Unable to get details of another user's dataset.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Successfully retrieved dataset details.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "dataset": {
+                                            "type": "object",
+                                            "properties": {
+                                                "DatasetId": {
+                                                    "type": "string"
+                                                },
+                                                "DatasetName": {
+                                                    "type": "string"
+                                                },
+                                                "DatasetDescription": {
+                                                    "type": "string"
+                                                },
+                                                "Domain": {
+                                                    "type": "string"
+                                                },
+                                                "FileType": {
+                                                    "type": "string"
+                                                },
+                                                "TargetLocation": {
+                                                    "type": "string"
+                                                },
+                                                "Keywords": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "TableUpdate": {
+                                                    "type": "string"
+                                                },
+                                                "LastModified": {
+                                                    "type": "string"
+                                                },
+                                                "LastModifiedBy": {
+                                                    "type": "string"
+                                                },
+                                                "RegistrationStatus": {
+                                                    "type": "string"
+                                                },
+                                                "CreatedBy": {
+                                                    "type": "string"
+                                                },
+                                                "CreationDate": {
+                                                    "type": "string"
+                                                },
+                                                "IsActive": {
+                                                    "type": "string"
+                                                },
+                                                "AccessType": {
+                                                    "type": "string"
+                                                },
+                                                "IsOwner": {
+                                                    "type": "boolean"
+                                                },
+                                                "FileDelimiter": {
+                                                    "type": "string"
+                                                },
+                                                "DatasourceType": {
+                                                    "type": "string"
+                                                },
+                                                "IsDataCleanupEnabled": {
+                                                    "type": "boolean"
+                                                },
+                                                "IsDataProfilingEnabled": {
+                                                    "type": "boolean"
+                                                },
+                                                "DatasetSummaryFilePath": {
+                                                    "type": "string"
+                                                },
+                                                "SkipLZProcess": {
+                                                    "type": "boolean"
+                                                },
+                                                "IsTranslateAIResultsEnabled": {
+                                                    "type": "boolean"
+                                                },
+                                                "DatasetS3Path": {
+                                                    "type": "string"
+                                                },
+                                                "TenantName": {
+                                                    "type": "string"
+                                                },
+                                                "DatasetStatus": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/datasets/{dataset_name}/files": {
+            "get": {
+                "summary": "List all the files present inside dataset. User will give the dataset name in the input. Lookout for keywords like 'files'.",
+                "description": "List all the files present inside dataset. User will give the dataset name in the input. Lookout for keywords like 'files'.",
+                "operationId": "getDatasetFiles",
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "description": "Unique ID of the user. This is a non-mandatory parameter. If no value is passed, do not prompt. Continue with the request.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "datasetName",
+                        "in": "path",
+                        "description": "Name of the dataset",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved list of all the dataset files.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "files": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "FileName": {
+                                                        "type": "string"
+                                                    },
+                                                    "FileStatus": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Dataset entered by the user is not in the valid format.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "402": {
+                        "description": "Either no such dataset exists, or the user does not have access to the dataset.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied. Unable to list files inside a dataset of another user.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/datasets/{dataset_name}/dataprofiling": {
+            "post": {
+                "summary": "Run the data profiling job for a dataset. User will give the dataset name in the input. Lookout for keywords like 'run', 'trigger', etc. If data profiling is disabled, do not attempt to enable and run again.",
+                "description": "Run the data profiling job for a dataset. User will give the dataset name in the input. Lookout for keywords like 'run', 'trigger', etc. If data profiling is disabled, do not attempt to enable and run again.",
+                "operationId": "runDataProfilingJob",
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "description": "Unique ID of the user. This is a non-mandatory parameter. If no value is passed, do not prompt. Continue with the request.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "datasetName",
+                        "in": "path",
+                        "description": "Name of the dataset.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully triggered data profiling job for the dataset.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Dataset entered by the user is not in the valid format.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "402": {
+                        "description": "Either no such dataset exists, or the user does not have access to the dataset.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Data profiling has been disabled for the dataset. Do not try to retrigger the lambda or do any further action. Return the response.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Access denied. Unable to run dataprofiling on a dataset for another user.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Enable or disable the data profiling job for a dataset. User will give the dataset name in the input. Lookout for keywords like 'enable' or 'disable'",
+                "description": "Enable or disable the data profiling job for a dataset. User will give the dataset name in the input. Lookout for keywords like 'enable' or 'disable'",
+                "operationId": "enableDisableDataProfilingJob",
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "description": "Unique ID of the user. This is a non-mandatory parameter. If no value is passed, do not prompt. Continue with the request.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "datasetName",
+                        "in": "path",
+                        "description": "Name of the dataset.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "ruleAction",
+                        "in": "path",
+                        "description": "Action to be performed, whether to enable or disable the data profiling job. This parameter takes the value of either 'enable' or 'disable'.",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully enabled/disabled data profiling job for the dataset.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Dataset entered by the user is not in the valid format.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "402": {
+                        "description": "Either no such dataset exists, or the user does not have access to the dataset.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Not a valid action. Valid actions are enable/disable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Data profiling is already enabled for the dataset.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Data profiling is already disabled for the dataset.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "406": {
+                        "description": "Data profiling is not supported for the target location.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "407": {
+                        "description": "Data profiling is not supported for the file type.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "408": {
+                        "description": "Access denied. Unable to enable or disable dataprofiling on a dataset for another user.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

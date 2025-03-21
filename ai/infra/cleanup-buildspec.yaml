@@ -1,0 +1,262 @@
+version: 0.2
+env:
+  shell: bash
+phases:
+  pre_build:
+    commands:
+      - echo deployment environment is $deployment_environment
+      - echo account id is $account_id
+      - echo preparing to deploy AI into region - $deploy_region
+      - echo project short name is $project_short_name
+      - echo cross account role arn is $cross_account_role_arn
+      - echo cross_account_externalid is $cross_account_externalid
+      - echo vertical name is $vertical_name
+      - echo cmp core bucket name is $cmp_core_bucket
+      - echo cmp artifacts bucket name is $artifacts_bucket_name
+      - echo cmp artifacts prefix  is $artifacts_prefix
+      # Download cleanupUtil from CMP artifact bucket
+      - aws s3 cp s3://$artifacts_bucket_name/$artifacts_prefix/cleanup-util/cleanupUtil.py .
+      # Assume cross account role,save credentials to access_credentials file and execute the file
+      - aws sts assume-role --role-arn ${cross_account_role_arn} --role-session-name verticals-cicd --external-id ${cross_account_externalid} > tmp.json;
+      - echo "export AWS_ACCESS_KEY_ID=`cat tmp.json | jq '.Credentials.AccessKeyId'`" > access_credentials
+      - echo "export AWS_SECRET_ACCESS_KEY=`cat tmp.json | jq '.Credentials.SecretAccessKey'`" >> access_credentials
+      - echo "export AWS_SESSION_TOKEN=`cat tmp.json | jq '.Credentials.SessionToken'`" >> access_credentials
+      - echo "export AWS_REGION=$deploy_region">> access_credentials
+      - . ./access_credentials
+  build:
+    commands:
+      - echo starting AI cleanup process
+      # Emptying all AI s3 buckets
+      - echo Emptying all AI s3 buckets
+      - export logs_bucket_name="${project_short_name}-${vertical_name}-${deploy_region}-${account_id}-logs"
+      - web_bucket_name="${project_short_name}-${vertical_name}-${deploy_region}-${account_id}-${deployment_environment}-web"
+      - ai_data_bucket_name="${project_short_name}-${vertical_name}-${deploy_region}-${account_id}-${deployment_environment}-aidatabucket"
+      - ai_misc_bucket_name="${project_short_name}-${vertical_name}-${deploy_region}-${account_id}-${deployment_environment}-aimiscbucket"
+      - |
+        python -c "
+        import os
+        import boto3
+
+        s3_buckets_list = [
+          os.environ['web_bucket_name'],
+          os.environ['ai_data_bucket_name'],
+          os.environ['ai_misc_bucket_name'],
+          os.environ['logs_bucket_name'],
+        ]
+        S3_RESOURCE = boto3.resource('s3')
+
+        for each_bucket in s3_buckets_list:
+          try:
+              print(f'Starting S3 bucket cleanup of str(each_bucket)')
+              delete_bucket_objects = S3_RESOURCE.Bucket(each_bucket)
+              for object_version in delete_bucket_objects.object_versions.all():
+                  object_version.delete()
+          except Exception as ex:
+              if 'NoSuchBucket' in str(ex):
+                  print(f'Exception block, bucket {str(each_bucket)} deleted already, listed because of region sync in AWS')
+              else:
+                  print(f'Exception block, cleanup failed with error - {str(ex)} so raising exception')
+                  raise Exception(ex) from ex
+        # Deleting the LogsBucket to prevent logs being written into it, to prevent infra stack cleanup failure
+        try:
+          print('Deleting bucket - ', str(os.environ['logs_bucket_name']))
+          S3_RESOURCE.Bucket(os.environ['logs_bucket_name']).delete()
+        except Exception as ex:
+          print('Exception block, deletion of bucket {} failed with error - {} so raising exception'.format(os.environ['logs_bucket_name'], str(ex)))
+        print('S3 buckets cleanup completed successfully')
+        "
+      # Setting DeletionProtectionEnabled property for DB Tables to False so that it can move ahead with the cleanup process
+      - |
+        python -c "
+        import os
+        import boto3
+        import cleanupUtil
+        PROJECT_SHORT_NAME=os.environ['project_short_name']
+        ENVIRONMENT=os.environ['deployment_environment']
+        REGION=os.environ['AWS_REGION']
+        ACCESS_KEY_ID=os.environ['AWS_ACCESS_KEY_ID']
+        SECRET_KEY=os.environ['AWS_SECRET_ACCESS_KEY']
+        SESSION_TOKEN=os.environ['AWS_SESSION_TOKEN']
+        VERTICAL_NAME=os.environ['vertical_name']
+        boto3_session = boto3.Session(aws_access_key_id=ACCESS_KEY_ID, aws_secret_access_key=SECRET_KEY, aws_session_token=SESSION_TOKEN, region_name=REGION)
+        event = {
+          'Configurations':{
+            'ProjectShortName': PROJECT_SHORT_NAME,
+            'Environment': ENVIRONMENT,
+            'Region': REGION
+          }
+        }
+        cleanupUtil.remove_deletion_protection(event, boto3_session, VERTICAL_NAME)
+        "
+      # Deleting AI API stack
+      - echo Deleting infra and api stacks
+      - aws cloudformation delete-stack --stack-name ${project_short_name}-${deployment_environment}-verticals-ai-api --role-arn ${cross_account_role_arn}
+      - aws cloudformation wait stack-delete-complete --stack-name ${project_short_name}-${deployment_environment}-verticals-ai-api
+      # Deleting AI Infra stack
+      - aws cloudformation delete-stack --stack-name ${project_short_name}-${deployment_environment}-verticals-ai-infra --role-arn ${cross_account_role_arn}
+      - aws cloudformation wait stack-delete-complete --stack-name ${project_short_name}-${deployment_environment}-verticals-ai-infra
+     # Deleting AI specific parameters from SSM
+      - parameter_names=$(AWS_MAX_ATTEMPTS=10 aws ssm describe-parameters --query "Parameters[?starts_with(Name, 'AMORPHIC.AI')].Name" --output text)
+      - |
+        if [ -n "$parameter_names" ];
+        then
+          for param in $parameter_names; do
+            aws ssm delete-parameter --name "$param"
+            echo "Deleted SSM param: $param"
+          done
+        else
+          echo "No parameters found with the specified prefix. Skipping deletion."
+        fi
+      # Remove AI from Enabled Verticals List SSM parameter
+      - echo Updating enabled verticals list ssm parameter
+      - enabled_verticals_list=`aws ssm get-parameter --name "AMORPHIC.CONFIG.ENABLEDVERTICALSLIST" --query 'Parameter.Value' --output text 2> /dev/null` || true
+      - updated_verticals_list=$(echo "$enabled_verticals_list" | sed -e "s/\b$vertical_name\b//g" -e "s/^,//g" -e "s/,,/,/g" -e "s/,$//g")
+      - |
+        if [ -z "$updated_verticals_list" ]; then
+          echo Deleting SSM parameter as there are no more verticals deployed
+          aws ssm delete-parameter --name "AMORPHIC.CONFIG.ENABLEDVERTICALSLIST"
+        else
+          aws ssm put-parameter --name "AMORPHIC.CONFIG.ENABLEDVERTICALSLIST" --value "$updated_verticals_list" --type String --overwrite
+        fi
+      - echo Deleting service user secret
+      - SECRET_ID="${project_short_name}-ai-${deployment_environment}-ragserviceusersecret"
+      - aws secretsmanager delete-secret --secret-id $SECRET_ID --force-delete-without-recovery
+      - echo Deleting metadata from Amorphic tables
+      - amorphic_verticals_table=`aws ssm get-parameter --name "/${project_short_name}/${deployment_environment}/dynamoDB/verticalsTable" --query 'Parameter.Value' --output text 2> /dev/null` || true
+      - acl_resources_table=`aws ssm get-parameter --name "/${project_short_name}/${deployment_environment}/dynamoDB/aclResourcesTable" --query 'Parameter.Value' --output text 2> /dev/null` || true
+      - |
+        python -c "
+        import os
+        import sys
+        from datetime import datetime
+        import boto3
+        try:
+            # Set your variables
+            REGION=os.environ['AWS_REGION']
+            ACCESS_KEY_ID=os.environ['AWS_ACCESS_KEY_ID']
+            SECRET_KEY=os.environ['AWS_SECRET_ACCESS_KEY']
+            SESSION_TOKEN=os.environ['AWS_SESSION_TOKEN']
+            VERTICAL_NAME=os.environ['vertical_name']
+            boto3_session = boto3.Session(aws_access_key_id=ACCESS_KEY_ID, aws_secret_access_key=SECRET_KEY, aws_session_token=SESSION_TOKEN, region_name=REGION)
+            DYNAMODB_RES = boto3_session.resource('dynamodb')
+            VERTICALS_TABLE = DYNAMODB_RES.Table(os.environ['amorphic_verticals_table'])
+            ACL_RESOURCES_TABLE = DYNAMODB_RES.Table(os.environ['acl_resources_table'])
+        except Exception as exc:
+            raise Exception('Failed to set environment variables with: %s', '{0}'.format(exc))
+
+        def main():
+            print('Updating metadata in Amorphic DDB tables')
+            # Scan the DynamoDB table
+            response = VERTICALS_TABLE.scan(
+                FilterExpression=boto3.dynamodb.conditions.Attr('VerticalType').eq(VERTICAL_NAME)
+            )
+            if not response['Items']:
+                print('Vertical metadata not found. Exiting script')
+                return
+            vertical_item = response['Items'][0]
+            vertical_id = vertical_item['VerticalId']
+            # Remove entry from verticals table
+            response = VERTICALS_TABLE.delete_item(
+                Key =  {
+                    'VerticalId': vertical_id
+                }
+            )
+            acl_resources_table_items = ACL_RESOURCES_TABLE.query(
+                KeyConditionExpression= boto3.dynamodb.conditions.Key('ResourceId').eq(vertical_id),
+                ProjectionExpression='ResourceId, TagAccessKey'
+            )
+            acl_resources_table_items= acl_resources_table_items['Items']
+            with ACL_RESOURCES_TABLE.batch_writer() as batch:
+                for key in acl_resources_table_items:
+                    batch.delete_item(Key=key)
+            print('Successfully updated metadata in Amorphic DDB tables')
+        if __name__=='__main__':
+            main()
+        "
+      - echo Verticals cleanup process is completed.
+  post_build:
+    commands:
+      - echo Entering post build phase
+      - echo Build phase status is $CODEBUILD_BUILD_SUCCEEDING
+      # Update vertical deployment status in DynamoDB if the deployment was from CMP
+      - |
+        if [ "$cleanup_source" = "CMP" ]; then
+        # Remove the cross account access role from the session
+        unset AWS_SESSION_TOKEN
+        unset AWS_ACCESS_KEY_ID
+        unset AWS_SECRET_ACCESS_KEY
+        python -c "
+        import os
+        import boto3
+        from datetime import datetime
+
+        APPLICATION_ID = os.environ['application_id']
+        APPLICATIONS_TABLE_NAME = os.environ['applications_table_name']
+        VERTICAL_NAME = os.environ['vertical_name']
+        DEPLOYMENT_STATUS = os.environ['CODEBUILD_BUILD_SUCCEEDING'] # Env variable provided by CodeBuild
+
+        VERTICALS_STATUS_DELETE_ERROR = 'delete-failed'
+        VERTICALS_STATUS_DELETED = 'deleted'
+
+        DYNAMODB_RESOURCE = boto3.resource('dynamodb')
+        APPLICATIONS_TABLE = DYNAMODB_RESOURCE.Table(APPLICATIONS_TABLE_NAME)
+
+        def get_application_metadata():
+            '''
+            Get application metadata from DDB
+            '''
+            print(f'In get_application_metadata, getting details of app id {APPLICATION_ID}')
+            application_item = APPLICATIONS_TABLE.get_item(
+                Key = {
+                    'ApplicationId': APPLICATION_ID
+                }
+            )
+            print('In get_application_metadata, exiting method')
+            return application_item['Item']
+
+        def update_verticals_deployment_status(application_item):
+            '''
+            Update vertical deployment status in dynamo db
+            '''
+            print('In update_verticals_deployment_status, updating metadata')
+
+            # If DEPLOYMENT_STATUS is 1 then build was successfull, 0 otherwise
+            if DEPLOYMENT_STATUS == '1':
+                application_item['VerticalsConfig'][VERTICAL_NAME].update({
+                    'VerticalStatus': VERTICALS_STATUS_DELETED
+                })
+                if VERTICAL_NAME in application_item['Configurations'].get('EnabledVerticalsList', []):
+                    application_item['Configurations']['EnabledVerticalsList'].remove(VERTICAL_NAME)
+            else:
+                application_item['VerticalsConfig'][VERTICAL_NAME].update({
+                    'VerticalStatus': VERTICALS_STATUS_DELETE_ERROR
+                })
+
+            update_expression = 'SET LastModifiedTime = :val1, VerticalsConfig = :val2, Configurations = :val3'
+            expression_attributes = {
+                ':val1': str(datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')),
+                ':val2': application_item['VerticalsConfig'],
+                ':val3': application_item['Configurations']
+            }
+
+            response = APPLICATIONS_TABLE.update_item(
+                Key=  {
+                    'ApplicationId': APPLICATION_ID
+                },
+                UpdateExpression = update_expression,
+                ExpressionAttributeValues = expression_attributes
+            )
+            print('In update_verticals_deployment_status, exiting method')
+
+        def main():
+            '''
+            Main Method
+            '''
+            # Get the application metadata
+            application_item = get_application_metadata()
+            update_verticals_deployment_status(application_item)
+
+        if __name__ == '__main__':
+            main()
+        "
+        fi

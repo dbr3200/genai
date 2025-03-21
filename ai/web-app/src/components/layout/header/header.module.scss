@@ -1,0 +1,45 @@
+.header {
+  @apply relative flex flex-row items-center justify-between mx-0 px-4 py-0 md:py-4 gap-4;
+  @apply sticky top-0 md:relative bg-ashGray shadow-md md:shadow-sm;
+  @apply h-14 md:h-20 z-20 md:z-auto;
+
+  .TitleAndBreadcrumbsContainer {
+    @apply flex-none flex flex-col items-start justify-start;
+
+    .title {
+      @apply flex flex-row items-center gap-2 w-full;
+
+      .menuBtn {
+        @apply p-0 inline-block md:hidden;
+      }
+
+      h1 {
+        @apply font-robotoLight text-lg md:text-2xl text-oxfordBlue;
+      }
+    }
+
+    .breadcrumbs {
+      @apply invisible h-0 md:visible md:h-auto;
+    }
+  }
+}
+
+.sidenav {
+  @apply md:ml-[4.6rem] md:rtl:ml-0 md:rtl:mr-[4.6rem];
+}
+
+.banner {
+  @apply flex items-center gap-2 p-2 mb-1 sticky top-0 z-[1024] bg-maize font-robotoRegular;
+}
+
+:global(.dark) {
+  .header {
+    @apply bg-secondary-200 border-b border-dark3;
+
+    .title {
+      h1 {
+        @apply text-white;
+      }
+    }
+  }
+}

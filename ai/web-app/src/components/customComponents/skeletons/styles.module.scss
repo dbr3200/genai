@@ -1,0 +1,39 @@
+.DetailsSkeleton {
+  @apply flex flex-col w-full p-4 gap-2;
+
+  div {
+    @apply flex gap-2 w-full;
+  }
+
+  .CTAs {
+    @apply justify-end;
+  }
+
+  .DetailsSkeleton__header {
+    @apply flex justify-between items-center;
+  }
+
+  .gap {
+    @apply flex  gap-3 w-full;
+  }
+}
+
+.DetailsCardSkeleton {
+  @apply flex flex-col gap-2;
+
+  div {
+    @apply flex flex-wrap gap-2 w-full;
+  }
+
+  hr {
+    @apply ring-gray;
+  }
+
+  .CTAs {
+    @apply justify-end;
+  }
+}
+
+.fieldGrid {
+  @apply grid gap-x-14 gap-y-14 grid-cols-1 md:grid-cols-3 items-baseline;
+}

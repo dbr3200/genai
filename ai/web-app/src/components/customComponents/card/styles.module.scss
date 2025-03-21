@@ -1,0 +1,8 @@
+.cardLink {
+  @apply flex max-w-auto p-6 bg-white rounded shadow hover:bg-gray-100;
+  @apply dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700;
+
+  .resourceCard {
+    @apply shadow-md p-0 h-auto text-jetGray font-robotoRegular;
+  }
+}

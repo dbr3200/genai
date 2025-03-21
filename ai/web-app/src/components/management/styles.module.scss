@@ -1,0 +1,59 @@
+.container {
+  @apply grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mx-4;
+}
+
+.list {
+  @apply md:w-3/12 shadow-lg border border-platinum dark:border-dark2;
+}
+
+.ipForm {
+  @apply mt-5 space-y-3 lg:space-x-4 lg:flex items-center;
+
+  .buttonContainer {
+    @apply flex items-center space-x-3;
+  }
+}
+
+.applicationTagsTitle {
+  @apply flex gap-2 items-center;
+}
+
+.applicationTagsDataContainer {
+  @apply w-full flex flex-wrap items-center gap-2 my-4;
+}
+
+.applicationTagsForm {
+  @apply flex flex-col justify-center self-start md:col-span-2;
+}
+
+.applicationTagsFormSubmit {
+  @apply flex justify-end mt-4;
+}
+
+.previousObjectRetentionHeader {
+  @apply flex gap-2 items-center;
+}
+
+.previousObjectRetentionBody {
+  @apply w-full items-center space-y-2 gap-1 my-4;
+}
+
+.content {
+  @apply md:col-span-2 lg:col-span-3 p-4 shadow-xl;
+
+  .sectionContent {
+    @apply flex flex-row justify-between items-start;
+
+    .details {
+      @apply flex flex-col gap-y-2 w-full;
+
+      .title {
+        @apply font-bold;
+      }
+    }
+
+    .ctaContainer {
+      @apply flex flex-row;
+    }
+  }
+}

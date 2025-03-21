@@ -1,0 +1,1605 @@
+{
+  "errorCodeDefinitions": {
+    "invalidParameterValues": [
+      {
+        "Code": "IPV-1001",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is missing",
+        "Message": "Parameter {} is a required value.",
+        "Description": "The parameter value is missing."
+      },
+      {
+        "Code": "IPV-1002",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid {} - {}, resource not found.",
+        "Description": "The resource tried to be accessed using parameter value doesn't exist."
+      },
+      {
+        "Code": "IPV-1003",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter must be a unique value",
+        "Message": "Invalid parameter - {}, this field must be a unique value across the platform",
+        "Description": "The parameter value cannot be used as it violates the unique value requirement."
+      },
+      {
+        "Code": "IPV-1004",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter must be a valid input",
+        "Message": "Invalid parameter - {}, this field value must satisfy all requirements",
+        "Description": "The parameter value must satisfy all requirements."
+      },
+      {
+        "Code": "IPV-1005",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, contact administrator",
+        "Description": "Either the parameter value is invalid or must be handled in the backend by the developer."
+      },
+      {
+        "Code": "IPV-1006",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Projection keys values are invalid",
+        "Message": "Invalid input projection keys - {}, valid keys are - {}",
+        "Description": "The provided projection keys values are invalid, please choose a valid value."
+      },
+      {
+        "Code": "IPV-1007",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter must be a valid input",
+        "Message": "Invalid parameter - {}, cannot contain white spaces",
+        "Description": "The parameter value must not contain white spaces."
+      },
+      {
+        "Code": "IPV-1008",
+        "Class": "INVALID_REQUEST_BODY",
+        "Title": "Key values is/are missing",
+        "Message": "Invalid request body, missing key(s) - {}",
+        "Description": "The required key value is missing in input body passed by user."
+      },
+      {
+        "Code": "IPV-1009",
+        "Class": "INVALID_TOKEN",
+        "Title": "Token value is invalid",
+        "Message": "Invalid token, {} is not present in token.",
+        "Description": "The provided token value is invalid because it's missing some key parameters."
+      },
+      {
+        "Code": "IPV-1010",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, it can contain alphanumeric and special chars only (Underscore,Hyphen and Period).",
+        "Description": "The parameter value must satisfy the required conditions."
+      },
+      {
+        "Code": "IPV-1011",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, it can contain alphanumeric and special characters only.",
+        "Description": "The parameter value must satisfy the required conditions."
+      },
+      {
+        "Code": "IPV-1012",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, value should be between {}-{}",
+        "Description": "The parameter value must satisfy the required conditions."
+      },
+      {
+        "Code": "IPV-1013",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, this field value must be a boolean value.",
+        "Description": "The parameter value must satisfy the required conditions."
+      },
+      {
+        "Code": "IPV-1014",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, must start with {}-, allowed pattern a-zA-Z0-9_.-, must be less than 100 chars.",
+        "Description": "The parameter value must satisfy the required conditions."
+      },
+      {
+        "Code": "IPV-1015",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, size must be between 1 and 4000 chars(inclusive).",
+        "Description": "The parameter value must satisfy the required conditions."
+      },
+      {
+        "Code": "IPV-1016",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, must be one of (String, StringList, SecureString).",
+        "Description": "The parameter value must satisfy the required conditions."
+      },
+      {
+        "Code": "IPV-1017",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, must be one of (global, user).",
+        "Description": "The parameter value must satisfy the required conditions."
+      },
+      {
+        "Code": "IPV-1018",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, parameter value already exists, use different value.",
+        "Description": "The parameter value must be unique across platform."
+      },
+      {
+        "Code": "IPV-1019",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, valid values should be between 1 - 525600 (whole numbers in minutes).",
+        "Description": "The parameter value must satisfy the required conditions."
+      },
+      {
+        "Code": "IPV-1020",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, only string values are accepted.",
+        "Description": "The parameter value must be a valid string."
+      },
+      {
+        "Code": "IPV-1021",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, values must be in between 1-3653 or -1.",
+        "Description": "The parameter value must be lying between valid range given."
+      },
+      {
+        "Code": "IPV-1022",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, valid name length should be in between 0-60",
+        "Description": "The parameter value length must be lying between valid range given."
+      },
+      {
+        "Code": "IPV-1023",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, please follow UTC Time format",
+        "Description": "The parameter value format is invalid, it must follow UTC time format."
+      },
+      {
+        "Code": "IPV-1024",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, please follow `yyyy-mm-ddThh:mm:ss` or cron expression formats",
+        "Description": "The parameter value format is invalid, it must follow `yyyy-mm-ddThh:mm:ss` or cron expression formats."
+      },
+      {
+        "Code": "IPV-1025",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, valid format is ddd:hh24:mi-ddd:hh24:mi",
+        "Description": "The parameter value format is invalid, it must follow ddd:hh24:mi-ddd:hh24:mi format."
+      },
+      {
+        "Code": "IPV-1026",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, offset must be between 1 and total_number_of_files({})",
+        "Description": "The parameter value should lie between given range."
+      },
+      {
+        "Code": "IPV-1027",
+        "Class": "INVALID_FEATURE",
+        "Title": "Feature value is invalid",
+        "Message": "Invalid feature - {}",
+        "Description": "The provided feature name is invalid."
+      },
+      {
+        "Code": "IPV-1028",
+        "Class": "INVALID_S3_PATH",
+        "Title": "S3 path is invalid",
+        "Message": "Invalid S3 path - {path}. Reason - The bucket name can be between 3 and 63 characters long, and can contain only lower-case characters, numbers, periods, and dashes.",
+        "Description": "S3 path provided by user is invalid."
+      },
+      {
+        "Code": "IPV-1029",
+        "Class": "INVALID_S3_PATH",
+        "Title": "S3 path is invalid",
+        "Message": "Invalid S3 path - {path}. Reason - The bucket name cannot contain underscores, end with a dash, have consecutive periods, or use dashes adjacent to periods.",
+        "Description": "S3 path provided by user is invalid."
+      },
+      {
+        "Code": "IPV-1030",
+        "Class": "INVALID_S3_PATH",
+        "Title": "S3 path is invalid",
+        "Message": "Invalid S3 path - {path}. Reason - one of bucket_name or bucket_key is empty",
+        "Description": "S3 path provided by user is invalid."
+      },
+      {
+        "Code": "IPV-1031",
+        "Class": "INVALID_S3_PATH",
+        "Title": "S3 path is invalid",
+        "Message": "Invalid S3 path - {path}. Reason - The path provided is empty",
+        "Description": "S3 path provided by user is invalid."
+      },
+      {
+        "Code": "IPV-1032",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Missing env variables",
+        "Message": "Required env variables {} are not present in os_env_var_dict",
+        "Description": "Some env variables are not present in os_env_var_dict variable."
+      },
+      {
+        "Code": "IPV-1033",
+        "Class": "INVALID_DATE_FORMAT",
+        "Title": "Invalid date format",
+        "Message": "Date format entered for key `DATE_FORMAT` is not supported, this link provides the supported formats - https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes",
+        "Description": "Please refer to the given link to resolve the date format issue"
+      },
+      {
+        "Code": "IPV-1034",
+        "Class": "INVALID_INPUT_EXPRESSION",
+        "Title": "Invalid expression",
+        "Message": "Invalid input expression {}, should be like `%%CURRENT_DATE-10M`, M here is minutes less than trigger time, H for hours. `%%CURRENT_DATE` is also a valid time",
+        "Description": "The input expression must satisfy all requirements"
+      },
+      {
+        "Code": "IPV-1035",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Invalid parameter value",
+        "Message": "Invalid parameter - {}, it must be in %Y-%m-%d %H:%M:%S format",
+        "Description": "The parameter value must satisfy the format."
+      },
+      {
+        "Code": "IPV-1036",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Invalid parameter value",
+        "Message": "Invalid parameter - {}, value should be {} than {}",
+        "Description": "The parameter value must be greater/less than specified value."
+      },
+      {
+        "Code": "IPV-1037",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Missing table parameters",
+        "Message": "Required tables {} are not present in tables_dict to validate {} access",
+        "Description": "Some table parameters are not present in tables_dict variable."
+      },
+      {
+        "Code": "IPV-1038",
+        "Class": "INVALID_EVENT_BODY",
+        "Title": "Missing mandatory keys from event info",
+        "Message": "Request body doesn't have required keys {} to carryout this operation",
+        "Description": "Invalid request body due to incomplete information is causing the issue."
+      },
+      {
+        "Code": "IPV-1039",
+        "Class": "INVALID_COLUMN_FIELD",
+        "Title": "Invalid column value in request body",
+        "Message": "Invalid {} column, please use one from the list of fields",
+        "Description": "Invalid request body due to invalid column value."
+      },
+      {
+        "Code": "IPV-1040",
+        "Class": "INVALID_INPUT_BODY",
+        "Title": "Invalid fields found in input body",
+        "Message": "Invalid elements found in input fields - '{}'",
+        "Description": "There are some invalid elements present in request body."
+      },
+      {
+        "Code": "IPV-1041",
+        "Class": "INVALID_PARAMETER_VALUE",
+        "Title": "Invalid value provided for a specific parameter",
+        "Message": "Invalid parameter - {}, allowed values/keys are {}",
+        "Description": "The given parameter contains invalid value, please use a valid value from given list."
+      },
+      {
+        "Code": "IPV-1042",
+        "Class": "INVALID_PARAMETER_VALUE",
+        "Title": "Invalid value provided for a specific parameter",
+        "Message": "Invalid parameter - {}, must be list of {'Key': 'string', 'Value': 'string'}.",
+        "Description": "The given parameter contains invalid value, please use a valid value from given list."
+      },
+      {
+        "Code": "IPV-1043",
+        "Class": "INVALID_PARAMETER_VALUES",
+        "Title": "Invalid data type provided for parameters",
+        "Message": "Invalid input body - Keywords must be list & Description must be string",
+        "Description": "The given parameters contains invalid datatype of value, please use a valid data type."
+      },
+      {
+        "Code": "IPV-1044",
+        "Class": "MISSING_MANDATORY_PARAMETER",
+        "Title": "Invalid request body",
+        "Message": "Missing mandatory param Pagination Header Key when Pagination type of header is selected",
+        "Description": "Insufficient information in request body. Pagination Header Key is required in request body."
+      },
+      {
+        "Code": "IPV-1045",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Invalid value provided for a specific parameter",
+        "Message": "Invalid parameter - {}, value either missing or is invalid.",
+        "Description": "The given parameter contains invalid value or is missing from request body, please use/provide given parameter value."
+      },
+      {
+        "Code": "IPV-1046",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Value provided for a specific parameter cannot be updated",
+        "Message": "Invalid value - {}, parameter cannot be updated.",
+        "Description": "The given parameter contains invalid value or is missing from request body, please use/provide given parameter value."
+      },
+      {
+        "Code": "IPV-1047",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Missing required resource parameters.",
+        "Message": "Missing required resource parameters.",
+        "Description": "The given parameter contains invalid value or is missing from request body, please use/provide given parameter value."
+      },
+      {
+        "Code": "IPV-1048",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Invalid Job type parameter.",
+        "Message": "Invalid Job type parameter.",
+        "Description": "The given parameter contains invalid value or is missing from request body, please use/provide given parameter value."
+      },
+      {
+        "Code": "IPV-1049",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Invalid operation parameter while updating user.",
+        "Message": "Invalid operation parameter, supported values [enable, disable, disable-mfa, user-agreement].",
+        "Description": "Invalid operation parameter while updating user."
+      },
+      {
+        "Code": "IPV-1050",
+        "Class": "INVALID_PARAMETER_VALUE",
+        "Title": "Value provided for a specific parameter must be under the limit",
+        "Message": "Out of range for items per page, Limit is {}",
+        "Description": "This limit is for paginating the results, the max items in one API call it can return."
+      },
+      {
+        "Code": "IPV-1051",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Some parameters are missing from request query.",
+        "Message": "Missing {} in request query",
+        "Description": "Some parameters are missing from request query."
+      },
+      {
+        "Code": "IPV-1052",
+        "Class": "MISSING_QUERY_PARAMETER",
+        "Title": "Missing keys in query string parameters",
+        "Message": "Missing mandatory parameter(s) {} in queryStringParameters/pathParameters",
+        "Description": "The given query string parameters is/are missing in request body."
+      },
+      {
+        "Code": "IPV-1053",
+        "Class": "MISSING_QUERY_AND_PATH_PARAMETER",
+        "Title": "Missing keys in query string & path parameters",
+        "Message": "Missing mandatory parameter(s) {} in query string & {} in path parameters",
+        "Description": "The given query string & path parameters is/are missing in request body."
+      },
+      {
+        "Code": "IPV-1054",
+        "Class": "INVALID_INPUT_FORMAT",
+        "Title": "Invalid input format",
+        "Message": "Input {} are in invalid format should be in YYYY-MM-DDThh:mm:ss and in UTC timezone",
+        "Description": "The given input format is invalid, please provide a valid format."
+      },
+      {
+        "Code": "IPV-1055",
+        "Class": "MISSING_MANDATORY_PARAMETER",
+        "Title": "Invalid request body",
+        "Message": "Invalid input, missing mandatory parameter {} when {} is {}",
+        "Description": "Insufficient information in request body. Mandatory parameters are required in request body."
+      },
+      {
+        "Code": "IPV-1056",
+        "Class": "UNEXPECTED_DATE_FORMAT",
+        "Title": "Unexpected date format",
+        "Message": "Unexpected format for date, Expected format is {}.",
+        "Description": "Unexpected date format has been given"
+      },
+      {
+        "Code": "IPV-1057",
+        "Class": "QUERY_SUBMISSION_FAILED",
+        "Title": "Failed to submit query due to incompatible dataset types",
+        "Message": "Lakeformation datasets cannot be queried together with a non lakeformation type dataset",
+        "Description": "Currently Amorphic doesnot support querying Lakeformation datasets with a non lakeformation type datasets."
+      },
+      {
+        "Code": "IPV-1058",
+        "Class": "GRANT_DATA_PERMISSIONS_FAILURE",
+        "Title": "Failed to grant dataset fine grained column permissions",
+        "Message": "Dataset doesnot support fine grained column permissions",
+        "Description": "Currently Amorphic supports fine grained column permissions only for lakeformation type datasets. Please re-create your dataset with of type 'Lakeformation'"
+      },
+      {
+        "Code": "IPV-1059",
+        "Class": "GRANT_DATA_PERMISSIONS_FAILURE",
+        "Title": "Failed to grant dataset fine grained column permissions",
+        "Message": "Failed to assign permissions due to invalid columns {} present in the request body",
+        "Description": "Unable to assign permissions to the user as input columns do not belong to the dataset"
+      },
+      {
+        "Code": "IPV-1060",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Invalid operation parameter while updating user column permissions.",
+        "Message": "Invalid operation parameter, supported values are [Columns, FilterType].",
+        "Description": "Invalid operation parameter while updating user column permissions."
+      },
+      {
+        "Code": "IPV-1061",
+        "Class": "INVALID_RESOURCE_TYPE",
+        "Title": "Invalid resource type provided by user.",
+        "Message": "Invalid resource type - {}, supported types are {}.",
+        "Description": "Operation is not permitted for given resource type. Please provide a valid resource type in input."
+      },
+      {
+        "Code": "IPV-1062",
+        "Class": "INVALID_PARAMETER_VALUE_TYPE",
+        "Title": "Invalid data type provided for parameters",
+        "Message": "Invalid input body - DataClassification must be list.",
+        "Description": "The given parameters contains invalid datatype of value, please use a valid data type."
+      },
+      {
+        "Code": "IPV-1063",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, please follow valid cluster identifier format",
+        "Description": "The parameter value format is invalid, \n Must contain from 1 to 63 alphanumeric characters or hyphens. \n Alphabetic characters must be lowercase.\nFirst character must be a letter.\nCannot end with a hyphen or contain two consecutive hyphens. "
+      },
+      {
+        "Code": "IPV-1064",
+        "Class": "INVALID_HEADER",
+        "Title": "Header value is invalid",
+        "Message": "Invalid Header value - {}, valid headers are {}",
+        "Description": "Headers for bulk user creation csv must follow the format "
+      },
+      {
+        "Code": "IPV-1065",
+        "Class": "INVALID_USERNAME",
+        "Title": "Invalid username",
+        "Message": "Invalid username - {}, in line {}, should only contain numerical values, lowercase letters,should not start with numerical value",
+        "Description": "username should satisfy standards"
+      },
+      {
+        "Code": "IPV-1066",
+        "Class": "RECORDS_LENGTH_NOT_VALID",
+        "Title": "Record length not in allowed range",
+        "Message": "Number of records should be between 1 and 1000",
+        "Description": "input csv records should be in range 1-1000"
+      },
+      {
+        "Code": "IPV-1067",
+        "Class": "INVALID_PARAMETER_VALUE",
+        "Title": "Invalid value provided for a specific parameter",
+        "Message": "Invalid parameter - {}, value must be a dictionary of format {{'parameter1': 'argument1', 'parameter2': 'argument2', ...}}.",
+        "Description": "The given parameters contains invalid datatype of value, please use a valid data type."
+      },
+      {
+        "Code": "IPV-1068",
+        "Class": "PARAMETER_LENGTH_OUT_OF_RANGE",
+        "Title": "Parameter length not in allowed range",
+        "Message": "Invalid parameter - {}, Length should not exceed {} characters",
+        "Description": "The given parameter length should be in valid range"
+      },
+      {
+        "Code": "IPV-1069",
+        "Class": "QUERY_SUBMISSION_FAILED",
+        "Title": "Failed to submit query due to incompatible dataset/view types",
+        "Message": "{}",
+        "Description": "Failed to submit query due to incompatible dataset/view types"
+      },
+      {
+        "Code": "IPV-1070",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Parameter value is invalid",
+        "Message": "Invalid parameter - {}, please follow the following Date format, YYYY-MM-DD",
+        "Description": "The parameter value format is invalid, it must follow YYYY-MM-DD date format."
+      },
+      {
+        "Code": "IPV-1071",
+        "Class": "INVALID_PARAMETER_VALUE",
+        "Title": "Invalid value provided for a specific parameter",
+        "Message": "Invalid value of {}, allowed values are {}",
+        "Description": "The given parameter contains invalid value, please use a valid value from given list."
+      },
+      {
+        "Code": "IPV-1072",
+        "Class": "VIEW_UPDATE_FAILED",
+        "Title": "There is no value to update",
+        "Message": "View updation failed, No change found",
+        "Description": "No change for attributes, no need to update."
+      },
+      {
+        "Code": "IPV-1073",
+        "Class": "INVALID_PARAMETER_VALUE",
+        "Title": "Invalid key passed in query string parameters",
+        "Message": "Invalid value of {} passed to query string parameter (only embedding/text accepted)",
+        "Description": "The given value to query string parameters is invalid."
+      }
+    ],
+    "generic": [
+      {
+        "Code": "GE-1001",
+        "Class": "INVALID_API_REQUEST",
+        "Title": "Request body validation failed",
+        "Message": "Invalid input body",
+        "Description": "The api request body is either missing some mandatory parameters or containing invalid parameters."
+      },
+      {
+        "Code": "GE-1002",
+        "Class": "FAILED_TO_PERFORM_OPERATION",
+        "Title": "Failed to perform a specific operation",
+        "Message": "Failed to {} {}, please try again.",
+        "Description": "The operation couldn't be completed due to some network issue, please try after some time."
+      },
+      {
+        "Code": "GE-1003",
+        "Class": "RESOURCE_NOT_FOUND",
+        "Title": "Resource no longer exist",
+        "Message": "{} does not exist.",
+        "Description": "The resource which the user is trying to access, no longer exists in the system."
+      },
+      {
+        "Code": "GE-1004",
+        "Class": "FAILED_TO_PERFORM_OPERATION_WITH_ERROR",
+        "Title": "Failed to perform a specific operation with an error",
+        "Message": "Failed to {} {} due to error - {}",
+        "Description": "The operation couldn't be completed due to some error."
+      },
+      {
+        "Code": "GE-1005",
+        "Class": "INVALID_HTTP_METHOD",
+        "Title": "Invalid http method value",
+        "Message": "Invalid http method {} passed from API Gateway for this lambda, supported types are {}",
+        "Description": "The given lambda doesn't support the http method provided by user, please choose a supported http method type."
+      },
+      {
+        "Code": "GE-1006",
+        "Class": "GLUE_DB_DELETE_OPERATION",
+        "Title": "Glue database deletion failed",
+        "Message": "Unable to delete the glue database as there are tables associated with it. Contact Administrator",
+        "Description": "The glue database couldn't be deleted as there are tables associated with it, please contact admin."
+      },
+      {
+        "Code": "GE-1007",
+        "Class": "INVALID_PATH",
+        "Title": "Invalid path",
+        "Message": "Invalid resource path",
+        "Description": "The provided resource path is no longer valid."
+      },
+      {
+        "Code": "GE-1008",
+        "Class": "INVALID_API_REQUEST",
+        "Title": "Incomplete api request",
+        "Message": "Could not complete the request. Please try again",
+        "Description": "There was some issue while processing the api request."
+      },
+      {
+        "Code": "GE-1009",
+        "Class": "RESOURCE_ALREADY_EXISTS",
+        "Title": "Resource is already present",
+        "Message": "{} already exists!",
+        "Description": "The resource being created already exists in the system."
+      },
+      {
+        "Code": "GE-1010",
+        "Class": "INVALID_API_REQUEST",
+        "Title": "Invalid api request",
+        "Message": "Invalid http method - {} or api resource - {}, please recheck",
+        "Description": "The provided api request method or resource name is not supported by lambda."
+      },
+      {
+        "Code": "GE-1011",
+        "Class": "API_REQUEST_FAILED",
+        "Title": "Unable to store key",
+        "Message": "Unable to store secret key, please try again later.",
+        "Description": "There was some issue while storing the secret key."
+      },
+      {
+        "Code": "GE-1012",
+        "Class": "API_REQUEST_FAILED",
+        "Title": "Unable to update server details",
+        "Message": "Unable to update server details, please try again later.",
+        "Description": "There was some issue while updating the server details."
+      },
+      {
+        "Code": "GE-1013",
+        "Class": "LAMBDA_EXECUTION_FAILED",
+        "Title": "Lambda invocation failed",
+        "Message": "{} lambda failed with error - {}",
+        "Description": "There was some issue while executing the lambda function."
+      },
+      {
+        "Code": "GE-1014",
+        "Class": "INVALID_API_REQUEST",
+        "Title": "Api request failed",
+        "Message": "Failed to perform the health check on resources, try again later.",
+        "Description": "There was some issue while processing the api request."
+      },
+      {
+        "Code": "GE-1015",
+        "Class": "INVALID_SERVICE_TYPE",
+        "Title": "Service type chosen is invalid",
+        "Message": "Invalid service type - {}, currently system only supports {} type.",
+        "Description": "The provided service type for api request is invalid."
+      },
+      {
+        "Code": "GE-1016",
+        "Class": "GET_CLUSTER_INFO",
+        "Title": "Unable to retrieve cluster info",
+        "Message": "Error occurred while retrieving cluster details - {}",
+        "Description": "There was some issue caused while retrieving the cluster details."
+      },
+      {
+        "Code": "GE-1017",
+        "Class": "S3_GET_FILES_FAILED",
+        "Title": "Unable to retrieve files from S3 bucket",
+        "Message": "Failed to fetch files from S3 bucket {}",
+        "Description": "There was some issue while retrieving files from S3 bucket."
+      },
+      {
+        "Code": "GE-1018",
+        "Class": "FAILED_TO_UPDATE_METADATA",
+        "Title": "Unable to update metadata",
+        "Message": "Unable to update the file loads metadata status.",
+        "Description": "There was some issue while updating the file load status."
+      },
+      {
+        "Code": "GE-1019",
+        "Class": "FAILED_TO_SET_AUTO_TERMINATION_TIME",
+        "Title": "Unable to update metadata",
+        "Message": "Auto termination time cannot be set when auto terminate flag is disabled",
+        "Description": "Setting auto termination time is not allowed when auto terminate flag is enabled."
+      },
+      {
+        "Code": "GE-1020",
+        "Class": "FAILED_TO_UPDATE_METADATA",
+        "Title": "Unable to update metadata",
+        "Message": "Unable to update {} table, please retry or contact administrator",
+        "Description": "There was some issue while updating metadata in dynamoDB table."
+      },
+      {
+        "Code": "GE-1021",
+        "Class": "FAILED_TO_DELETE_METADATA",
+        "Title": "Unable to delete metadata",
+        "Message": "Unable to delete items in {} table, please check for errors",
+        "Description": "There was some issue while deleting metadata in dynamoDB table."
+      },
+      {
+        "Code": "GE-1022",
+        "Class": "FAILED_TO_REVOKE_ACCESS",
+        "Title": "Unable to revoke access",
+        "Message": "Failed to revoke access - metadata update failure, try again later.",
+        "Description": "There was some issue while revoking access on resource."
+      },
+      {
+        "Code": "GE-1023",
+        "Class": "INCONSISTENT_METADATA",
+        "Title": "Metadata inconsistency issue",
+        "Message": "Inconsistent metadata, please clean up and retry.",
+        "Description": "There is some inconsistency in metadata stored in database."
+      },
+      {
+        "Code": "GE-1024",
+        "Class": "FAILED_TO_RETRIEVE_RESOURCE_INFO",
+        "Title": "Issue while fetching information",
+        "Message": "Couldn't retrieve resource information.",
+        "Description": "There is some issue while retrieving information of the resource."
+      },
+      {
+        "Code": "GE-1025",
+        "Class": "FAILED_TO_UPDATE_METADATA",
+        "Title": "Failed to update metadata.",
+        "Message": "Failed to update metadata, contact admin support.",
+        "Description": "There was some issue while updating metadata of the resource."
+      },
+      {
+        "Code": "GE-1026",
+        "Class": "FAILED_TO_RETRIEVE_RESOURCE_INFO",
+        "Title": "Metadata inconsistency while fetching information",
+        "Message": "Unable to fetch details, Metadata is out of sync.",
+        "Description": "There is some issue while retrieving information of the resource."
+      },
+      {
+        "Code": "GE-1027",
+        "Class": "BOTO3_API_ERROR",
+        "Title": "Unexpected api response from boto3",
+        "Message": "AWS Boto3 APIs returned a different response which is {} to what we were expecting for {}, it doesn't contains {}",
+        "Description": "There is some issue while executing boto3 api."
+      },
+      {
+        "Code": "GE-1028",
+        "Class": "PAGINATION_FAULT",
+        "Title": "Too many items per page to display",
+        "Message": "Out of range for items per page, Limit is 1000",
+        "Description": "User is trying to display more than 1000 items in a page which is not allowed."
+      },
+      {
+        "Code": "GE-1029",
+        "Class": "RESOURCE_ALREADY_DELETED",
+        "Title": "Resource not found to be deleted",
+        "Message": "{} is already deleted.",
+        "Description": "The resource being tried to be deleted, doesn't exist in system anymore."
+      },
+      {
+        "Code": "GE-1030",
+        "Class": "GLUE_TABLE_DELETE_FAILED",
+        "Title": "Error deleting GLUE table",
+        "Message": "Unable to delete the GLUE table, try again later.",
+        "Description": "There was some issue while deleting GLUE table from GLUE table."
+      },
+      {
+        "Code": "GE-1031",
+        "Class": "UPDATE_HISTORY_FAILED",
+        "Title": "Error updating history after deletion of table",
+        "Message": "Failed to update history after successful deletion of table. Contact Administrator.",
+        "Description": "There was some issue while updating history after successful deletion of table, please contact admin for help."
+      },
+      {
+        "Code": "GE-1032",
+        "Class": "FAILED_TO_DELETE_RESOURCE",
+        "Title": "Error deleting a resource",
+        "Message": "Failed to delete {} with error {}",
+        "Description": "There was some issue while deleting resource, please contact admin for help."
+      },
+      {
+        "Code": "GE-1033",
+        "Class": "FAILED_TO_PERFORM_OPERATION_ON_RESOURCE",
+        "Title": "Error performing operation on resource",
+        "Message": "Cannot complete requested operation, resource access update is already in progress state",
+        "Description": "User can't perform operation on resource when it's in update-in-progress state."
+      },
+      {
+        "Code": "GE-1034",
+        "Class": "GENERIC_CUSTOM_ERROR",
+        "Title": "Custom error msg thrown for generic issues",
+        "Message": "{}",
+        "Description": "User defined custom error message for generic issues."
+      },
+      {
+        "Code": "GE-1035",
+        "Class": "INVALID_TARGET_LOCATION",
+        "Title": "Invalid target location",
+        "Message": "Application doesn't support selected target location '{}'.",
+        "Description": "Application doesn't support selected target location."
+      },
+      {
+        "Code": "GE-1036",
+        "Class": "INVALID_DATALAKE",
+        "Title": "Target location not supported for given datalake",
+        "Message": "'{}' file target location is not supported for Datalake '{}'.",
+        "Description": "Application doesn't support selected target datalake for given file target location."
+      },
+      {
+        "Code": "GE-1037",
+        "Class": "FAILED_TO_DELETE_FILES",
+        "Title": "Failed to delete files from Bucket",
+        "Message": "Failed to delete files '{}' from Bucket '{}'.",
+        "Description": "Failed to delete files from s3 bucket."
+      },
+      {
+        "Code": "GE-1038",
+        "Class": "FAILED_TO_DELETE_ACCESS_REQUEST",
+        "Title": "Failed to delete request item from access grants table",
+        "Message": "Failed to delete request item from access grants table, please try again later.",
+        "Description": "Failed to delete request item from access grants table."
+      },
+      {
+        "Code": "GE-1039",
+        "Class": "FAILED_TO_FETCH_RELOAD_EXECUTION",
+        "Title": "Failed to fetch latest reload execution",
+        "Message": "Failed to fetch latest reload execution - '{}'.",
+        "Description": "Failed to fetch latest reload execution."
+      },
+      {
+        "Code": "GE-1040",
+        "Class": "FAILED_TO_UPDATE_DATASET_STATUS",
+        "Title": "Unable to update dataset status",
+        "Message": "Unable to update dataset status, check for errors.",
+        "Description": "Unable to update dataset status."
+      },
+      {
+        "Code": "GE-1041",
+        "Class": "FAILED_TO_UPDATE_DATASET_STATUS",
+        "Title": "Unable to update dataset status",
+        "Message": "Unable to update dataset status, check for errors.",
+        "Description": "Unable to update dataset status."
+      },
+      {
+        "Code": "GE-1042",
+        "Class": "INCONSISTENT_LAMBDA",
+        "Title": "Event operation is inconsistent with the lambda",
+        "Message": "Event operation is inconsistent with the lambda",
+        "Description": "Event operation is inconsistent with the lambda."
+      },
+      {
+        "Code": "GE-1043",
+        "Class": "BAD_RESOURCE_STATE_FOR_OPERATION",
+        "Title": "Resource state is in bad state for the requested operation",
+        "Message": "This operation can only be done when resource '{}' is in '{}' state.",
+        "Description": "Application does not support this operation on the resource when the resource is in bad state."
+      },
+      {
+        "Code": "GE-1044",
+        "Class": "GENERIC_UNKNOWN_ERROR",
+        "Title": "Unexpected error encountered",
+        "Message": "Unexpected error - {}",
+        "Description": "Unexpected/Unhandled error occurred while performing the operation."
+      },
+      {
+        "Code": "GE-1045",
+        "Class": "GENERIC_MAX_API_REQUEST_LIMIT_EXCEEDED",
+        "Title": "Failed to add/remove resources",
+        "Message": "Number of resources to add or remove per api call exceeds maximum limit of 20 found - {}",
+        "Description": "The api limit doesn't allow to add/remove more than 20 resources per api call."
+      },
+      {
+        "Code": "GE-1046",
+        "Class": "INVALID_RESOURCE_ID",
+        "Title": "Invalid resource id received",
+        "Message": "Invalid {} id received - {}",
+        "Description": "Invalid resource id is received when making api requests"
+      },
+      {
+        "Code": "GE-1047",
+        "Class": "INVALID_SORT_ATTRIBUTE",
+        "Title": "Invalid sort attribute column",
+        "Message": "Sorting is not supported for other columns, please use {}",
+        "Description": "Table cannot be sorted based on given column, please provide a valid column"
+      },
+      {
+        "Code": "GE-1048",
+        "Class": "FETCHING_DATABASE_LIST_FAILED",
+        "Title": "Failed to get list of all databases",
+        "Message": "Failed to get list of all databases with exception - {}",
+        "Description": "Something went wrong while getting list of database."
+      },
+      {
+        "Code": "GE-1049",
+        "Class": "FETCHING_DATABASE_TABLE_FAILED",
+        "Title": "Failed to get tables of all databases",
+        "Message": "Failed to get list of db's and tables with exception - {}",
+        "Description": "Something went wrong while getting list of tables from database."
+      },
+      {
+        "Code": "GE-1050",
+        "Class": "FETCHING_TABLE_METADATA_FAILED",
+        "Title": "Failed to get table's metadata",
+        "Message": "Failed to get metadata of table with exception - {}",
+        "Description": "Something went wrong while getting metadata of tables from database."
+      },
+      {
+        "Code": "GE-1051",
+        "Class": "SCHEMA_CONVERSION_FAILED",
+        "Title": "Failed to convert schema",
+        "Message": "Failed to convert schema from source to target with exception - {}",
+        "Description": "Something went wrong while converting schema from source to target."
+      },
+      {
+        "Code": "GE-1052",
+        "Class": "FAILED_TO_GET_USER_DETAILS",
+        "Title": "Unable to retrieve user details",
+        "Message": "Unable to retrieve user details with error {}.",
+        "Description": "Error while retrieving user details."
+      },
+      {
+        "Code": "GE-1053",
+        "Class": "FAILED_TO_UPDATE_DB",
+        "Title": "Unable to update dynamoDB",
+        "Message": "User enabled in cognito but could not update the dynamodb.",
+        "Description": "Unable to update dynamoDB."
+      },
+      {
+        "Code": "GE-1054",
+        "Class": "FAILED_TO_DISABLE_USER",
+        "Title": "Not able to disable user",
+        "Message": "Unable to disable user {}.",
+        "Description": "Not able to disable user"
+      },
+      {
+        "Code": "GE-1055",
+        "Class": "FAILED_TO_ENABLE_USER",
+        "Title": "Not able to enable user",
+        "Message": "Unable to enable user {}.",
+        "Description": "Not able to enable user"
+      },
+      {
+        "Code": "GE-1056",
+        "Class": "FAILED_TO_DISABLE_MFA",
+        "Title": "MFA is not able to disable as it is not setup",
+        "Message": "Unable to disable MFA as user {} has not set up software token MFA.",
+        "Description": "MFA is not able to disable as it is not setup"
+      },
+      {
+        "Code": "GE-1057",
+        "Class": "FAILED_TO_DISABLE_MFA",
+        "Title": "MFA is not able to disable for a user",
+        "Message": "Unable to disable MFA for user {}.",
+        "Description": "MFA is not able to disable for a user"
+      },
+      {
+        "Code": "GE-1058",
+        "Class": "MISSING_PARAMETER",
+        "Title": "Required parameter is missing",
+        "Message": "Missing parameter {}.",
+        "Description": "Required parameter is missing"
+      },
+      {
+        "Code": "GE-1059",
+        "Class": "TRANSFER_USER_SHOULD_NOT_BE_SAME",
+        "Title": "TransferUser and user to be deleted should not be same",
+        "Message": "TransferUser cannot be same as user to be deleted.",
+        "Description": "TransferUser and user to be deleted should not be same"
+      },
+      {
+        "Code": "GE-1060",
+        "Class": "INVALID_USER",
+        "Title": "invalid user",
+        "Message": "User {} is not valid user.",
+        "Description": "User is invalid"
+      },
+      {
+        "Code": "GE-1061",
+        "Class": "FAILED_TO_UPDATE_DB",
+        "Title": "Unable to update dynamoDB",
+        "Message": "User deleted in cognito but could not update the dynamodb.",
+        "Description": "Unable to update dynamoDB."
+      },
+      {
+        "Code": "GE-1062",
+        "Class": "FAILED_TO_DELETE_USER",
+        "Title": "Not able to delete user",
+        "Message": "Unable to delete user {}.",
+        "Description": "Not able to delete user"
+      },
+      {
+        "Code": "GE-1063",
+        "Class": "MANDATORY_TRANSFER_USER",
+        "Title": "TransferUser is mandatory.",
+        "Message": "TransferUser is mandatory.",
+        "Description": "TransferUser is mandatory."
+      },
+      {
+        "Code": "GE-1064",
+        "Class": "USER_NOT_FOUND",
+        "Title": "User not found.",
+        "Message": "Couldn't locate user {} in the system.",
+        "Description": "User not found."
+      },
+      {
+        "Code": "GE-1065",
+        "Class": "USER_ALREADY_DISABLED",
+        "Title": "User is already disabled.",
+        "Message": "User {} is already disabled.",
+        "Description": "User is already disabled."
+      },
+      {
+        "Code": "GE-1066",
+        "Class": "USER_ALREADY_ACTIVE",
+        "Title": "User is already active.",
+        "Message": "User {} is already active.",
+        "Description": "User is already active."
+      },
+      {
+        "Code": "GE-1067",
+        "Class": "USER_DISABLE_FAILED",
+        "Title": "User is not disable itself.",
+        "Message": "User cannot disable itself.",
+        "Description": "User is not disable itself."
+      },
+      {
+        "Code": "GE-1068",
+        "Class": "GLUE_DB_TABLE_DELETE_OPERATION",
+        "Title": "Glue database and table deletion failed",
+        "Message": "Unable to delete the glue database and table. Contact Administrator",
+        "Description": "The glue database and table couldn't be deleted, please contact admin."
+      },
+      {
+        "Code": "GE-1069",
+        "Class": "USER_DISABLE_FAILED",
+        "Title": "User is not disable itself.",
+        "Message": "User cannot disable itself.",
+        "Description": "User is not disable itself."
+      },
+      {
+        "Code": "GE-1070",
+        "Class": "GLUE_PARTITION_CREATE_UPDATE_OPERATION",
+        "Title": "Glue partition creation or updation failed",
+        "Message": "Unable to create or update glue partition. Contact Administrator",
+        "Description": "The glue partition creation or updation failed, please contact admin."
+      },
+      {
+        "Code": "GE-1071",
+        "Class": "GLUE_TABLE_CREATION_OPERATION",
+        "Title": "Glue table creation failed",
+        "Message": "Unable to create the glue table for {}. Contact Administrator",
+        "Description": "The glue table couldn't be created, please contact admin."
+      },
+      {
+        "Code": "GE-1072",
+        "Class": "INVALID_FILE",
+        "Title": "Invalid file uploaded to dataset",
+        "Message": "Invalid file uploaded to dataset, either file is empty or corrupt",
+        "Description": "The file uploaded to dataset is either empty or corrupt, invalid file."
+      },
+      {
+        "Code": "GE-1073",
+        "Class": "LAMBDA_INVOCATION_LIMIT_REACHED",
+        "Title": "Maximum lambda invocation limit reached",
+        "Message": "Maximum lambda invoke attempts reached. Updating the status of the resource to {}",
+        "Description": "Maximum limit of lambda invocation in account has been reached. Please try to contact admin or AWS support."
+      },
+      {
+        "Code": "GE-1074",
+        "Class": "INVALID_DATA",
+        "Title": "Invalid data file uploaded to dataset",
+        "Message": "Invalid data - {}",
+        "Description": "The data file uploaded to the dataset has issues."
+      },
+      {
+        "Code": "GE-1075",
+        "Class": "GLUE_JOB_DELETION_FAILED",
+        "Title": "Glue job deletion failed",
+        "Message": "Glue job deletion failed with error - {}",
+        "Description": "This error occurs whenever glue job deletion is failed with an error."
+      },
+      {
+        "Code": "GE-1076",
+        "Class": "GLUE_JOB_CREATION_FAILED",
+        "Title": "Glue job creation failed",
+        "Message": "Glue job creation failed with error - {}",
+        "Description": "This error occurs whenever glue job creation is failed with an error."
+      },
+      {
+        "Code": "GE-1077",
+        "Class": "GLUE_JOB_UPDATION_FAILED",
+        "Title": "Glue job updation failed",
+        "Message": "Glue job updation failed with error - {}",
+        "Description": "This error occurs whenever glue job updation is failed with an error."
+      },
+      {
+        "Code": "GE-1078",
+        "Class": "API_REQUEST_FAILED",
+        "Title": "Unable to delete key",
+        "Message": "Unable to delete secret key, please try again later.",
+        "Description": "There was some issue while deleting the secret key."
+      },
+      {
+        "Code": "GE-1080",
+        "Class": "ACCESS_REQUEST_NOT_FOUND",
+        "Title": "Access request is not found.",
+        "Message": "Access request does not exists.",
+        "Description": "Access request is not found."
+      },
+      {
+        "Code": "GE-1081",
+        "Class": "PROXY_SERVICE_UNAVAILABLE",
+        "Title": "Unable to connect to internal services",
+        "Message": "Unable to connect to {} service.",
+        "Description": "Proxy service might be unavailable, may be aws service might be offline. Please contact administrator."
+      },
+      {
+        "Code": "GE-1082",
+        "Class": "CF_REQUEST_ERROR",
+        "Title": "Failed while sending response",
+        "Message": "Failed while sending the response to CloudFormation with error - {}",
+        "Description": "Failed while sending the response to CloudFormation because received a non-200 response"
+      },
+      {
+        "Code": "GE-1083",
+        "Class": "INVALID_RESOURCE_NAME",
+        "Title": "Invalid resource name",
+        "Message": "Invalid {} Name - {}",
+        "Description": "Invalid resource name provided."
+      },
+      {
+        "Code": "GE-1084",
+        "Class": "FAILED_TO_UPDATE_METADATA",
+        "Title": "Failed to update metadata.",
+        "Message": "Error updating metadata.",
+        "Description": "There was some issue while updating metadata of the resource."
+      },
+      {
+        "Code": "GE-1085",
+        "Class": "GENERIC_ERROR",
+        "Title": "Unable to process desired request",
+        "Message": "Unable to {} the request. Please try after sometime.",
+        "Description": "There was some issue while completing the request, please try after some time."
+      },
+      {
+        "Code": "GE-1086",
+        "Class": "GENERIC_ERROR",
+        "Title": "Request already processed",
+        "Message": "The request has already been handled.",
+        "Description": "The request has already been processed."
+      },
+      {
+        "Code": "GE-1087",
+        "Class": "GENERIC_ERROR",
+        "Title": "No request to deny",
+        "Message": "There is no request to deny.",
+        "Description": "There is no request to deny."
+      },
+      {
+        "Code": "GE-1088",
+        "Class": "GENERIC_ERROR",
+        "Title": "No user who requested access",
+        "Message": "There is no user who requested access.",
+        "Description": "There is no user who requested access."
+      },
+      {
+        "Code": "GE-1089",
+        "Class": "INVALID_API_REQUEST",
+        "Title": "Invali api request",
+        "Message": "Invalid API call",
+        "Description": "There was some issue while processing the api request."
+      },
+      {
+        "Code": "GE-1090",
+        "Class": "SEND_EMAIL_VERIFICATION_LINK_FAILED",
+        "Title": "Unable to send verification link",
+        "Message": "Unable to send verification link to user {} for email subscription",
+        "Description": "There was some issue while sending email verification link to user."
+      },
+      {
+        "Code": "GE-1091",
+        "Class": "USER_REMOVAL_FAILED",
+        "Title": "Unable to remove user",
+        "Message": "Unable to remove user {0} from mailing list",
+        "Description": "There was some issue while removing user form mailing list."
+      },
+      {
+        "Code": "GE-1092",
+        "Class": "SEND_MESSAGE_SNS_FAILED",
+        "Title": "Failed to send message to SNS topic",
+        "Message": "Failed to send message to SNS Topic {} with error {}",
+        "Description": "There was some issue while sending message to SNS topic."
+      },
+      {
+        "Code": "GE-1093",
+        "Class": "THROTTLING_EXCEPTION",
+        "Title": "Throttling exception received from the boto3 client",
+        "Message": "ThrottlingException with message: {}",
+        "Description": "Throttling exception received from the boto3 API"
+      },
+      {
+        "Code": "GE-1094",
+        "Class": "SERVICE_UNAVAILALE",
+        "Title": "Service unvailable exception received from the boto3 client",
+        "Message": "ServiceUnavailableException with message: {}",
+        "Description": "Service unvailable exception received from the boto3 API"
+      },
+      {
+        "Code": "GE-1095",
+        "Class": "RESULT_NOT_AVAILABLE",
+        "Title": "Results not available for downloading",
+        "Message": "No {} results available for download. Please try again after some time.",
+        "Description": "The result being downloaded is not available yet, please wait before trying again."
+      },
+      {
+        "Code": "GE-1096",
+        "Class": "RESOURCE_ACCESS_RESTRICTION",
+        "Title": "Cannot provide access to more than 25 resources of same kind at once",
+        "Message": "Cannot provide access to more than 25 {} using metadata update, use extra resource access",
+        "Description": "User should not try to update job with more than 25 resources attached of similar type like Datasets, Parameters, etc.."
+      },
+      {
+        "Code": "GE-1097",
+        "Class": "ATHENA_CONNECTOR_DATASET_VIEWS_DISPLAY_LIMIT_EXCEEDED",
+        "Title": "Failed to provide access of resources",
+        "Message": "Number of dataset and views exceeds maximum limit of {} found - {}",
+        "Description": "The api limit doesn't allow to view the resources of the user who owns more than 200 datasets and views."
+      },
+      {
+        "Code": "GE-1098",
+        "Class": "ATHENA_CONNECTOR_POLICY_CHARACTERS_LIMIT_EXCEEDED",
+        "Title": "Failed to create session policies due to characters limit exceeded",
+        "Message": "Domain name and dataset names are very long which exceeds policy characters maximum limit",
+        "Description": "The api limit doesn't allow to view the resources as domain name and dataset names have exceeded policy characters limit."
+      },
+      {
+        "Code": "GE-1099",
+        "Class": "VIEW_CREATION_FOR_GOVERNED_TABLE",
+        "Title": "View creation on top of governed dataset is not allowed",
+        "Message": "View creation on top of governed dataset is not allowed",
+        "Description": "Creating views on top of governed datasets are not allowed."
+      },
+      {
+        "Code": "GE-1100",
+        "Class": "GET_CLUSTER_ENDPOINT_DETAILS",
+        "Title": "Unable to retrieve cluster endpoint info",
+        "Message": "Error occurred while retrieving cluster endpoint details - {}",
+        "Description": "There was some issue caused while retrieving the cluster endpoint details."
+      },
+      {
+        "Code": "GE-1101",
+        "Class": "ATHENA_CONNECTOR_DATASET_VIEWS_DISPLAY_ZERO",
+        "Title": "Failed to provide access of resources",
+        "Message": "Number of dataset and views count is {}",
+        "Description": "The api limit doesn't allow to view the resources of the user who owns 0 datasets and views."
+      },
+      {
+        "Code": "GE-1102",
+        "Class": "USER_IS_BEING_DELETED",
+        "Title": "User is currently being deleted",
+        "Message": "User {} is currently being deleted.",
+        "Description": "User is currently being deleted."
+      },
+      {
+        "Code": "GE-1103",
+        "Class": "USER_CREATION_FAILED",
+        "Title": "User creation failed",
+        "Message": "User creation failed for user {}.due to {}",
+        "Description": "User creation failed."
+      },
+      {
+        "Code": "GE-1104",
+        "Class": "USER_CREATION_FAILED",
+        "Title": "Username already taken",
+        "Message": "Username {} already exists in userpool, username should be unique.",
+        "Description": "User creation failed because username already taken"
+      },
+      {
+        "Code": "GE-1105",
+        "Class": "USER_CREATION_FAILED",
+        "Title": "Email already taken",
+        "Message": "Email {} already exists in userpool, email should be unique.",
+        "Description": "User creation failed because email already taken"
+      },
+      {
+        "Code": "GE-1106",
+        "Class": "UNSUPPORTED_FEATURE",
+        "Title": "Feature not applicable for specified resource",
+        "Message": "{} is/are not supported for {}",
+        "Description": "Feature is not applicable to specified resource"
+      },
+      {
+        "Code": "GE-1107",
+        "Class": "USER_CREATION_FAILED",
+        "Title": "Cognito authentication is required",
+        "Message": "Environment not supported for admin user creation. Cognito authentication is required",
+        "Description": "User creation failed because environment is not using Cognito for authentication"
+      },
+      {
+        "Code": "GE-1108",
+        "Class": "RESOOURCE_TAG_UPDATE_FAILED",
+        "Title": "Failed to add tags to given resource",
+        "Message": "Unable to attach tags to given resource - {}. Please try after sometime.",
+        "Description": "There was some issue while attaching tags to given resource. Please try again after sometime."
+      },
+      {
+        "Code": "GE-1109",
+        "Class": "FAILED_TO_UPDATE_METADATA",
+        "Title": "Unable to update metadata",
+        "Message": "{} table updated successfully for email ids: {} and failed for: {} because the email id's are invalid",
+        "Description": "There was some issue while updating metadata in dynamoDB table."
+      },
+      {
+        "Code": "GE-1110",
+        "Class": "PRESIGNED_URL_FETCHING_FAILED",
+        "Title": " Pre-signed url fetch failed",
+        "Message": "Error while getting presigned URL - {}",
+        "Description": "Error while getting presigned URL"
+      },
+      {
+        "Code": "GE-1111",
+        "Class": "USER_CREATION_FAILED",
+        "Title": "Email domain validation failed",
+        "Message": "Invalid email - {}. Domain should be in {}",
+        "Description": "Domain of email provided is invalid"
+      },
+      {
+        "Code": "GE-1112",
+        "Class": "VIEW_DELETION_FAILED",
+        "Title": "View deletion failed",
+        "Message": "View deletion failed due to dependent views, Listing few dependent views - {}",
+        "Description": "View deletion failed due to dependent views"
+      },
+      {
+        "Code": "GE-1113",
+        "Class": "PARAMETER_RETRIEVAL_FAILED",
+        "Title": "Parameter retrieval failed",
+        "Message": "Failed to fetch {} parameter value. Invalid parameter or parameter not found.",
+        "Description": "Either the parameter being fetched from SSM doesn't exist or invalid parameter name is provided."
+      },
+      {
+        "Code": "GE-1114",
+        "Class": "API_REQUEST_FAILED",
+        "Title": "Unable to retrieve secret value",
+        "Message": "Unable to retrieve secret value due to {}.",
+        "Description": "There was some issue while fetching the secret value."
+      }
+    ],
+    "dynamoDB": [
+      {
+        "Code": "DB-1001",
+        "Class": "DB_ENTRY_CREATION_FAILED",
+        "Title": "Entry creation failed in dynamoDB table",
+        "Message": "Failed to create entry in the DynamoDB table, please check for errors",
+        "Description": "There was some issue while creating entry in the dynamoDB table."
+      },
+      {
+        "Code": "DB-1002",
+        "Class": "DB_ENTRY_UPDATE_FAILED",
+        "Title": "Failed to update dynamoDB table",
+        "Message": "Failed to update entry in the dynamoDB table, please check for errors",
+        "Description": "There was some issue while updating entry in the dynamoDB table."
+      },
+      {
+        "Code": "DB-1003",
+        "Class": "DB_ENTRY_DELETE_FAILED",
+        "Title": "Entry deletion failed in dynamoDB table",
+        "Message": "Failed to delete entry in dynamoDB table, please check for errors",
+        "Description": "There was some issue while deleting entry in the dynamoDB table."
+      },
+      {
+        "Code": "DB-1004",
+        "Class": "PREFIX_CREATION_FAILED",
+        "Title": "Partitions prefix creation failed in table",
+        "Message": "Failed to create prefix for partitions of table '{}'.",
+        "Description": "There was issue while creating prefix for partitions of table."
+      },
+      {
+        "Code": "DB-1005",
+        "Class": "DB_SERVICE_UNAVAILABLE",
+        "Title": "Connection to DynamoDB Failed",
+        "Message": "Failed to connect to dynamoDB service, please contact administrator",
+        "Description": "Unable to connect to dynamoDB service, check the proxy(network connection from amorphic) or check for AWS outage."
+      },
+      {
+        "Code": "DB-1006",
+        "Class": "DB_UPDATE_FAILED",
+        "Title": "Not able to update dynamodb",
+        "Message": "Could not update the dynamodb.",
+        "Description": "Not able to update dynamodb."
+      },
+      {
+        "Code": "DB-1007",
+        "Class": "UPDATE_CONTINUOUS_BACKUP_FAILED",
+        "Title": "Update continuous backup on dynamodb table failed",
+        "Message": "Unable to update continuous backups to dynamodb dataset table, failed with error - {}",
+        "Description": "There was some issue while updating continuous backups to dynamodb dataset table."
+      },
+      {
+        "Code": "DB-1008",
+        "Class": "DYNAMODB_OPERATION_FAILED",
+        "Title": "Failed to perform operations on dynamodb table",
+        "Message": "Failed to {} dynamodb dataset table with error - {}",
+        "Description": "There was some issue while performing operations on dynamodb dataset table."
+      },
+      {
+        "Code": "DB-1009",
+        "Class": "INVALID_PARAMETER",
+        "Title": "Column names are invalid",
+        "Message": "Invalid column names - {}, allowed pattern is ^[a-zA-Z][a-zA-Z0-9_]$.",
+        "Description": "The column names provided must satisfy the required conditions."
+      },
+      {
+        "Code": "DB-1010",
+        "Class": "INVALID_COLUMN_TYPE",
+        "Title": "Invalid column data type is provided by user",
+        "Message": "Column types {} is not part of supported data types of {}",
+        "Description": "Invalid column data types provided by user. Please provide a supported column type."
+      },
+      {
+        "Code": "DB-1011",
+        "Class": "INVALID_GLOBAL_INDEX_PARAMETERS",
+        "Title": "Invalid number of global indexes are provided",
+        "Message": "Invalid input, only one global index can be added/deleted in a request.",
+        "Description": "Invalid number of global indexes are provided by user, please check again."
+      }
+    ],
+    "authorization": [
+      {
+        "Code": "AUTH-1001",
+        "Class": "INCOMPLETE_EVENT_INFO",
+        "Title": "Missing role_id in event header",
+        "Message": "Missing role information in event header",
+        "Description": "User must provide a valid role_id to complete the request successfully."
+      },
+      {
+        "Code": "AUTH-1002",
+        "Class": "UNAUTHORIZED_USER",
+        "Title": "Insufficient user permissions",
+        "Message": "User action is not permitted",
+        "Description": "User needs to have valid permissions to perform the desired action."
+      },
+      {
+        "Code": "AUTH-1003",
+        "Class": "UNAUTHORIZED_ROLE_ACCESS",
+        "Title": "Insufficient user permissions",
+        "Message": "User is not authorized to use {} - {}",
+        "Description": "User needs to have valid permissions to assume role."
+      },
+      {
+        "Code": "AUTH-1004",
+        "Class": "UNAUTHORIZED_USER_ACCESS",
+        "Title": "Insufficient user permissions",
+        "Message": "User - {} not authorized to revoke access on the {} - {}",
+        "Description": "User needs to have valid permissions to revoke access on resource."
+      },
+      {
+        "Code": "AUTH-1005",
+        "Class": "UNAUTHORIZED_USER",
+        "Title": "Insufficient user permissions",
+        "Message": "User {} is not owner to perform this operation",
+        "Description": "User needs to have valid permissions to perform the desired action."
+      },
+      {
+        "Code": "AUTH-1006",
+        "Class": "UNAUTHORIZED_USER_GROUP_ACCESS",
+        "Title": "User isn't part of given group",
+        "Message": "User {} is not part of the group {}",
+        "Description": "User needs be part of group to perform the desired action."
+      },
+      {
+        "Code": "AUTH-1007",
+        "Class": "UNAUTHORIZED_RESOURCE_ACCESS",
+        "Title": "User doesn't have sufficient permissions to perform operation",
+        "Message": "Permission error, user {} is not the owner of the resource {} to be added.",
+        "Description": "User needs be owner of resource in order to perform the operation."
+      },
+      {
+        "Code": "AUTH-1008",
+        "Class": "UNAUTHORIZED_RESOURCE_ACCESS",
+        "Title": "User doesn't have sufficient permissions to perform operation",
+        "Message": "User {} is not the owner of the resource {} to be removed",
+        "Description": "User needs be owner of resource in order to perform the operation."
+      },
+      {
+        "Code": "AUTH-1009",
+        "Class": "UNAUTHORIZED_VIEW_ACCESS",
+        "Title": "User doesn't have sufficient permissions to perform operation",
+        "Message": "The user is not authorized to grant the access to view.",
+        "Description": "User needs be authorized in order to perform the operation."
+      },
+      {
+        "Code": "AUTH-1010",
+        "Class": "UNAUTHORIZED_USER_ACCESS",
+        "Title": "User doesn't have sufficient permissions to perform operation",
+        "Message": "User {} is not authorized to perform this operation",
+        "Description": "User needs be authorized in order to perform the operation."
+      },
+      {
+        "Code": "AUTH-1011",
+        "Class": "UNAUTHORIZED_USER_ACCESS",
+        "Title": "User doesn't have sufficient permissions to view details",
+        "Message": "User {} is not authorized to view resource details",
+        "Description": "User needs be authorized in order to view details."
+      },
+      {
+        "Code": "AUTH-1012",
+        "Class": "UNAUTHORIZED_USER_CUSTOM_ERROR",
+        "Title": "Custom error msg thrown for unauthorized access",
+        "Message": "{}",
+        "Description": "User defined custom error message for unauthorized user access."
+      },
+      {
+        "Code": "AUTH-1013",
+        "Class": "UNAUTHORIZED_USER",
+        "Title": "User not authorized to repair the dataset",
+        "Message": "User is not authorized to repair the dataset {}",
+        "Description": "User not authorized to repair the dataset."
+      },
+      {
+        "Code": "AUTH-1014",
+        "Class": "UNAUTHORIZED_USER",
+        "Title": "User not authorized to create resources in a domain",
+        "Message": "User is not owner of domain {} to create {}",
+        "Description": "User not owner of the domain."
+      },
+      {
+        "Code": "AUTH-1015",
+        "Class": "USER_OPERATION_NOT_ALLOWED",
+        "Title": "User is not allowed to change library name",
+        "Message": "User is not allowed to change library name.",
+        "Description": "User is not allowed to change library name"
+      },
+      {
+        "Code": "AUTH-1016",
+        "Class": "USER_OPERATION_NOT_ALLOWED",
+        "Title": "User is not authorized to view this library",
+        "Message": "User is not authorized to view this library.",
+        "Description": "User is not authorized to view this library"
+      },
+      {
+        "Code": "AUTH-1017",
+        "Class": "UNAUTHORIZED_ACCESS",
+        "Title": "Unauthorized access",
+        "Message": "User is not authorized to access this resource",
+        "Description": "User is not authorized to access this resource."
+      },
+      {
+        "Code": "AUTH-1018",
+        "Class": "UNAUTHORIZED_DELETE",
+        "Title": "Unauthorized delete",
+        "Message": "User is not authorized to delete this resource",
+        "Description": "User is not authorized to delete this resource."
+      },
+      {
+        "Code": "AUTH-1019",
+        "Class": "UNAUTHORIZED_USER",
+        "Title": "User is not authorized.",
+        "Message": "Unauthorized user - {}.",
+        "Description": "User is not authorized."
+      },
+      {
+        "Code": "AUTH-1020",
+        "Class": "UNAUTHORIZED_USER",
+        "Title": "User is not authorized to view this resources.",
+        "Message": "User - {}, is not authorized to view resources of user - {}.",
+        "Description": "User is not authorized to view this resources."
+      },
+      {
+        "Code": "AUTH-1021",
+        "Class": "UNAUTHORIZED_USER",
+        "Title": "User is not authorized to delete the access request.",
+        "Message": "User is unauthorized to delete the access request.",
+        "Description": "User is not authorized to delete the access the request."
+      },
+      {
+        "Code": "AUTH-1022",
+        "Class": "UNAUTHORIZED_USER",
+        "Title": "User is not authorized to access the request.",
+        "Message": "User {} is unauthorized to access the access requests of user {}..",
+        "Description": "User is not authorized to access the request."
+      },
+      {
+        "Code": "AUTH-1023",
+        "Class": "UNAUTHORIZED_USER",
+        "Title": "User is not authorized to view role.",
+        "Message": "User is not authorized to view the role detail.",
+        "Description": "User is not authorized to view role."
+      },
+      {
+        "Code": "AUTH-1024",
+        "Class": "UNAUTHORIZED_QUERY",
+        "Title": "Unauthorized querying the dataset",
+        "Message": "User is not authorized to query the dataset - {}",
+        "Description": "User is not authorized to query the dataset."
+      },
+      {
+        "Code": "AUTH-1025",
+        "Class": "UNAUTHORIZED_DENY_REQUEST",
+        "Title": "Unauthorized to deny request",
+        "Message": "The user is not authorized to deny the request.",
+        "Description": "User is not authorized to deny the dataset."
+      },
+      {
+        "Code": "AUTH-1026",
+        "Class": "UNAUTHORIZED_USER",
+        "Title": "User is not authorized to perform this operation.",
+        "Message": "User {} doesn't have access to {}.",
+        "Description": "User is not authorized to perform this operation."
+      },
+      {
+        "Code": "AUTH-1027",
+        "Class": "UNAUTHORIZED_USER",
+        "Title": "User not authorized to create domain in a tenant",
+        "Message": "User is not owner of tenant {} to create domain {}",
+        "Description": "User not owner of the tenant to create a domain."
+      }
+    ],
+    "errorMessageFormat": [
+      {
+        "Code": "EMF-1001",
+        "Class": "ErrorMessageDisplayFormat",
+        "Title": "To format custom exceptions",
+        "Message": "{} - {}.",
+        "Description": "This is the error msg format that will be displayed in UI. This is used for development purposes only."
+      }
+    ],
+    "accessRequests": [
+      {
+        "Code": "ACR-1001",
+        "Class": "INVALID_ACCESS_REQUEST",
+        "Title": "Access request cannot be processed for the resource",
+        "Message": "'{}' access request cannot be processed for {} as the user already have '{}' access",
+        "Description": "Access request cannot be processed for the resource if the user already have the access"
+      },
+      {
+        "Code": "ACR-1002",
+        "Class": "INVALID_ACCESS_REQUEST",
+        "Title": "Access request cannot be processed as existing request is still in 'pending' state",
+        "Message": "'{}' access request cannot be processed for {} as the existing '{}' access request is still in 'pending' state",
+        "Description": "Access request cannot be processed as existing request is still in 'pending' state"
+      }
+    ]
+  }
+}

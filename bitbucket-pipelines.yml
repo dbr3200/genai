@@ -1,0 +1,725 @@
+# Using Cloudwick baked runner Image with python3
+# Image build on 22-Jan-2024 with python3.12
+image: cloudwicklabs/bitbucketrunner:py312
+definitions:
+  scripts:
+    #Fetching the configuration files
+    #Source master.conf to set master's core bucket & region, then: default.conf, the deployment environment's conf file and the conf file specific to IDP
+    - script: &config_bootstrap_job_definition_idp
+        |
+          curl "http://myexternalip.com/raw"
+          set -a
+          source $BITBUCKET_CLONE_DIR/amorphic-config/config/master.conf
+          core_bucket_name_master="${PROJECT_SHORT_NAME}-${REGION}-${ACCOUNT_ID}-core"
+          region_master="${REGION}"
+          source $BITBUCKET_CLONE_DIR/amorphic-config/config/default.conf
+          if [ -f "$BITBUCKET_CLONE_DIR/amorphic-config/config/$BITBUCKET_BRANCH.conf" ]; then source $BITBUCKET_CLONE_DIR/amorphic-config/config/$BITBUCKET_BRANCH.conf; fi
+          source idp/config/default.conf
+          source idp/config/$BITBUCKET_BRANCH.conf
+          set +a
+          /bin/bash idp/scripts/aws-config.sh
+          core_bucket_name="${PROJECT_SHORT_NAME}-${REGION}-${ACCOUNT_ID}-core"
+    - script: &config_bootstrap_job_definition_ai
+        |
+          curl "http://myexternalip.com/raw"
+          set -a
+          source $BITBUCKET_CLONE_DIR/amorphic-config/config/master.conf
+          core_bucket_name_master="${PROJECT_SHORT_NAME}-${REGION}-${ACCOUNT_ID}-core"
+          region_master="${REGION}"
+          source $BITBUCKET_CLONE_DIR/amorphic-config/config/default.conf
+          if [ -f "$BITBUCKET_CLONE_DIR/amorphic-config/config/$BITBUCKET_BRANCH.conf" ]; then source $BITBUCKET_CLONE_DIR/amorphic-config/config/$BITBUCKET_BRANCH.conf; fi
+          source ai/config/default.conf
+          source ai/config/$BITBUCKET_BRANCH.conf
+          set +a
+          /bin/bash ai/scripts/aws-config.sh
+          core_bucket_name="${PROJECT_SHORT_NAME}-${REGION}-${ACCOUNT_ID}-core"
+    - script: &config_bootstrap_job_definition_trace
+        |
+          curl "http://myexternalip.com/raw"
+          set -a
+          source $BITBUCKET_CLONE_DIR/amorphic-config/config/master.conf
+          core_bucket_name_master="${PROJECT_SHORT_NAME}-${REGION}-${ACCOUNT_ID}-core"
+          region_master="${REGION}"
+          source $BITBUCKET_CLONE_DIR/amorphic-config/config/default.conf
+          if [ -f "$BITBUCKET_CLONE_DIR/amorphic-config/config/$BITBUCKET_BRANCH.conf" ]; then source $BITBUCKET_CLONE_DIR/amorphic-config/config/$BITBUCKET_BRANCH.conf; fi
+          source trace/config/default.conf
+          source trace/config/$BITBUCKET_BRANCH.conf
+          set +a
+          /bin/bash trace/scripts/aws-config.sh
+          core_bucket_name="${PROJECT_SHORT_NAME}-${REGION}-${ACCOUNT_ID}-core"
+    - script: &config_bootstrap_job_definition_qs
+        |
+          curl "http://myexternalip.com/raw"
+          set -a
+          source $BITBUCKET_CLONE_DIR/amorphic-config/config/master.conf
+          core_bucket_name_master="${PROJECT_SHORT_NAME}-${REGION}-${ACCOUNT_ID}-core"
+          region_master="${REGION}"
+          source $BITBUCKET_CLONE_DIR/amorphic-config/config/default.conf
+          if [ -f "$BITBUCKET_CLONE_DIR/amorphic-config/config/$BITBUCKET_BRANCH.conf" ]; then source $BITBUCKET_CLONE_DIR/amorphic-config/config/$BITBUCKET_BRANCH.conf; fi
+          source quicksight/config/default.conf
+          source quicksight/config/$BITBUCKET_BRANCH.conf
+          set +a
+          /bin/bash quicksight/scripts/aws-config.sh
+          core_bucket_name="${PROJECT_SHORT_NAME}-${REGION}-${ACCOUNT_ID}-core"
+  steps:
+    - step: &api-def-validate
+        name: Swagger Validate
+        max-time: 10 #Step will timeout after 10 mins
+        image: quay.io/goswagger/swagger:v0.29.0 #Swagger stable version on 24thMarch2022
+        script:
+          - swagger version
+          - find */*/*/ -name "*-api-definition.yaml" -print0 | xargs -0 -P 5 -n 1 swagger validate --stop-on-error
+    - step: &idp-api-def-validate
+        name: Swagger Validate
+        max-time: 10 #Step will timeout after 10 mins
+        image: quay.io/goswagger/swagger:v0.29.0 #Swagger stable version on 24thMarch2022
+        script:
+          - swagger version
+          - swagger validate idp/api/api-def/idp-api-definition.yaml --stop-on-error
+    - step: &ai-api-def-validate
+        name: Swagger Validate
+        max-time: 10 #Step will timeout after 10 mins
+        image: quay.io/goswagger/swagger:v0.29.0 #Swagger stable version on 24thMarch2022
+        script:
+          - swagger version
+          - swagger validate ai/api/api-def/ai-api-definition.yaml --stop-on-error
+    - step: &trace-api-def-validate
+        name: Swagger Validate
+        max-time: 10 #Step will timeout after 10 mins
+        image: quay.io/goswagger/swagger:v0.29.0 #Swagger stable version on 24thMarch2022
+        script:
+          - swagger version
+          - swagger validate trace/api/api-def/trace-api-definition.yaml --stop-on-error
+    - step: &cflint_codebase
+        name: CFN lint API templates
+        max-time: 10
+        script:
+          - find */*/cf-templates/ -type f \( -name "*.yaml" -o -name "*.yml" \) -print0 | xargs -0 -P 5 -n 1 cfn-lint -i W2001
+          - echo "cfn-linting is completed!!"
+    - step: &idp-pylint-full-code
+        name: Pylint Full lambda code - IDP
+        max-time: 20 #Step will timeout after 20 mins
+        script:
+          #linting the api lambda codebase
+          - find idp/api/lambda/ -name "*.py" -print0 | xargs -0 -P 5 -n 1 pylint -j 0 --rcfile=pylintrc
+          - echo "\n API lambda code linting is completed!!"
+          #linting the common modules codebase
+          - find idp/api/common-modules/ -name "*.py" -print0 | xargs -0 -P 5 -n 1 pylint -j 0 --rcfile=pylintrc
+          - echo "\n API Common Modules code linting is completed!!"
+    - step: &ai-pylint-full-code
+        name: Pylint Full lambda code - AI
+        max-time: 20 #Step will timeout after 20 mins
+        script:
+          - pylint --version
+          #linting the api lambda codebase
+          - find ai/api/lambda/ -name "*.py" -print0 | xargs -0 -P 5 -n 1 pylint -j 0 --rcfile=pylintrc
+          - echo "\n API lambda code linting is completed!!"
+          #linting the common modules codebase
+          - find ai/api/common-modules/ -name "*.py" -print0 | xargs -0 -P 5 -n 1 pylint -j 0 --rcfile=pylintrc
+          - echo "\n API Common Modules code linting is completed!!"
+    - step: &trace-pylint-full-code
+        name: Pylint Full lambda code - TRACE
+        max-time: 20 #Step will timeout after 20 mins
+        script:
+          #linting the api lambda codebase
+          - find trace/api/lambda/ -name "*.py" -print0 | xargs -0 -P 5 -n 1 pylint -j 0 --rcfile=pylintrc
+          - echo "\n API lambda code linting is completed!!"
+          #linting the common modules codebase
+          - find trace/api/common-modules/ -name "*.py" -print0 | xargs -0 -P 5 -n 1 pylint -j 0 --rcfile=pylintrc
+          - echo "\n API Common Modules code linting is completed!!"
+    - step: &idp-pylint-diff-code
+        name: Pylint Diff lambda code - IDP
+        max-time: 20 #Step will timeout after 20 mins
+        script:
+          #Fetch origin develop refs
+          - pylint --version
+          - git fetch origin "+refs/heads/develop:refs/remotes/origin/develop" --depth 1
+          - git diff origin/develop origin/${BITBUCKET_BRANCH} --name-status | grep -E '^M|^A|^C' | awk '{print$2}' > difference.txt
+          - git diff origin/develop origin/${BITBUCKET_BRANCH} --name-status | grep -E '^R' | awk '{print$3}' >> difference.txt
+          - sed -i '/.py$/!d;/buildCythonLambda.py/d;/generate-cloudguard-reports/d;/dbLayerLicenseinfoUpdate.py/d;/packageFile.py/d;/apidocRefactor.py/d;' difference.txt
+          - cat difference.txt
+          - cat difference.txt | while read LINE; do pylint --rcfile=pylintrc $LINE; done
+          - echo "API lambda code linting is completed!!"
+        artifacts:
+          - difference.txt
+    - step: &ai-pylint-diff-code
+        name: Pylint Diff lambda code - AI
+        max-time: 20 #Step will timeout after 20 mins
+        script:
+          #Fetch origin develop refs
+          - pylint --version
+          - git fetch origin "+refs/heads/develop:refs/remotes/origin/develop" --depth 1
+          - git diff origin/develop origin/${BITBUCKET_BRANCH} --name-status | grep -E '^M|^A|^C' | awk '{print$2}' > difference.txt
+          - git diff origin/develop origin/${BITBUCKET_BRANCH} --name-status | grep -E '^R' | awk '{print$3}' >> difference.txt
+          - sed -i '/.py$/!d;/buildCythonLambda.py/d;/generate-cloudguard-reports/d;/dbLayerLicenseinfoUpdate.py/d;/packageFile.py/d;/apidocRefactor.py/d;' difference.txt
+          - cat difference.txt
+          - cat difference.txt | while read LINE; do pylint --rcfile=pylintrc $LINE; done
+          - echo "API lambda code linting is completed!!"
+        artifacts:
+          - difference.txt
+    - step: &trace-pylint-diff-code
+        name: Pylint Diff lambda code - TRACE
+        max-time: 20 #Step will timeout after 20 mins
+        script:
+          #Fetch origin develop refs
+          - pylint --version
+          - git fetch origin "+refs/heads/develop:refs/remotes/origin/develop" --depth 1
+          - git diff origin/develop origin/${BITBUCKET_BRANCH} --name-status | grep -E '^M|^A|^C' | awk '{print$2}' > difference.txt
+          - git diff origin/develop origin/${BITBUCKET_BRANCH} --name-status | grep -E '^R' | awk '{print$3}' >> difference.txt
+          - sed -i '/.py$/!d;/buildCythonLambda.py/d;/generate-cloudguard-reports/d;/dbLayerLicenseinfoUpdate.py/d;/packageFile.py/d;/apidocRefactor.py/d;' difference.txt
+          - cat difference.txt
+          - cat difference.txt | while read LINE; do pylint --rcfile=pylintrc $LINE; done
+          - echo "API lambda code linting is completed!!"
+        artifacts:
+          - difference.txt
+    - step: &build-upload-idp-artifacts
+        name: Build & Upload IDP Artifacts
+        max-time: 20 #Step will timeout after 20 mins
+        oidc: true
+        services:
+          - docker
+        caches:
+          - docker
+        script:
+          - *config_bootstrap_job_definition_idp
+          - cd $BITBUCKET_CLONE_DIR
+          # Setting S3 artifacts location
+          - EPOCH=$(date +"%s")
+          - artifacts_prefix="adp/aws/${VERSION}/${BITBUCKET_BRANCH}/${EPOCH}"
+          # Build .so files using cython
+          - echo -e "Starting the python script buildCythonLambda to build .so files"
+          # Move to within idp folder so as to reuse existing logic
+          - mv buildCythonLambda.py idp/ && cd idp
+          # -j is the param used to decide how many files need to be converted to ".so" in parallel
+          - python buildCythonLambda.py build_ext -j 2 --inplace "api"
+          # Delete all py and c files
+          - rm -f api/lambda/*/*py api/lambda/*/*.c
+          - cd $BITBUCKET_CLONE_DIR
+          # Replace placeholders in the Swagger file and copy it to Core bucket
+          - apigateway_title="${PROJECT_SHORT_NAME}-${VERTICAL_NAME}-${DEPLOYMENT_ENV}"
+          - /bin/bash idp/scripts/replace-swagger-placeholders.sh idp-api-definition.yaml ${apigateway_title}
+          - aws s3 cp idp/api/api-def/idp-api-definition.yaml s3://${core_bucket_name}/${artifacts_prefix}/verticals/idp/api-def/ --profile ${BITBUCKET_BRANCH}
+          # Copy infra template to Core bucket, validate the cft's.
+          - aws s3 cp idp/infra/cf-templates/idp-infra-master-cf.yaml s3://${core_bucket_name}/${artifacts_prefix}/cf-templates/verticals/idp/idp-infra-master-cf.yaml --profile ${BITBUCKET_BRANCH}
+          - aws cloudformation validate-template --profile ${BITBUCKET_BRANCH} --region ${REGION} --template-url https://${core_bucket_name}.s3.amazonaws.com/${artifacts_prefix}/cf-templates/verticals/idp/idp-infra-master-cf.yaml
+          # Copy api template to Core bucket, validate the cft's
+          - aws s3 cp idp/api/cf-templates/idp-api-master-cf.yaml s3://${core_bucket_name}/${artifacts_prefix}/cf-templates/verticals/idp/idp-api-master-cf.yaml --profile ${BITBUCKET_BRANCH}
+          - aws cloudformation validate-template --profile ${BITBUCKET_BRANCH} --region ${REGION} --template-url https://${core_bucket_name}.s3.amazonaws.com/${artifacts_prefix}/cf-templates/verticals/idp/idp-api-master-cf.yaml
+          # Copy UI files to Core Bucket
+          - aws s3 cp --recursive idp/web-app/ s3://${core_bucket_name}/${artifacts_prefix}/verticals/idp/web-app/ --profile ${BITBUCKET_BRANCH}
+          # Steps to build, tag and push the IDP Lambda image to target account's ECR
+          - DOCKER_LAMBDA_REPO="$(aws ssm get-parameter --name "AMORPHIC.COREBUCKET.LAMBDAECRREPOSITORY" --profile ${BITBUCKET_BRANCH} --output text --query 'Parameter.Value')"
+          - IDP_IMAGE_URI="$DOCKER_LAMBDA_REPO:idp-$BITBUCKET_COMMIT"
+          - echo Commencing IDP Lambda image creation and deployment
+          # Logging into Amazon ECR of Sandbox account
+          - echo Logging in to Amazon ECR of Sandbox account
+          - aws ecr get-login-password --region $BB_AI_ECR_REGION --profile "dev_internal"| docker login --username AWS --password-stdin $BB_AI_ECR_ACCOUNT_ID.dkr.ecr.$BB_AI_ECR_REGION.amazonaws.com
+          # Build and tag image for IDP Lambda
+          - echo Building and tagging the Docker image for packages for IDP Lambdas
+          - docker build --label "cwdl.api.version=${VERSION}" --build-arg BASE_IMAGE="$ADP_CICD_ECR_REPOSITORY:idp-lambda-base-image" -t $IDP_IMAGE_URI -f idp/docker-images/Dockerfile_FinalImage .
+          # Logging into Amazon ECR of target account
+          - echo Logging in to Amazon ECR of target account - ${BITBUCKET_BRANCH}
+          - aws ecr get-login-password --region $REGION --profile ${BITBUCKET_BRANCH} | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.$REGION.amazonaws.com
+          # Push the image to ECR
+          - echo Pushing the Docker image to Amazon ECR of Target account
+          - docker push $IDP_IMAGE_URI
+          - echo IDP Lambda image built, tagged and pushed to ECR of Target account
+          - echo Build and Upload IDP Artifacts is completed successfully
+          # Export epoch to artifact file
+          - echo "export EPOCH=${EPOCH}" > epoch_data.conf
+        artifacts:
+          - epoch_data.conf
+    - step: &build-upload-ai-artifacts
+        name: Build & Upload AI Artifacts
+        max-time: 15 #Step will timeout after 15 mins
+        oidc: true
+        services:
+          - docker
+        caches:
+          - docker
+        script:
+          - *config_bootstrap_job_definition_ai
+          - ENABLE_RAG_ENGINE="$(aws ssm get-parameter --name "AMORPHIC.CONFIG.ENABLERAGENGINE" --profile ${BITBUCKET_BRANCH} --output text --query 'Parameter.Value')"
+          - if [[ "$ENABLE_RAG_ENGINE" == "no" ]]; then
+          - echo "RAG Engine is disabled, please enable the RAG engine and retry the deployment"
+          - exit 1
+          - fi
+          - cd $BITBUCKET_CLONE_DIR
+          # Setting S3 artifacts location
+          - EPOCH=$(date +"%s")
+          - artifacts_prefix="adp/aws/${VERSION}/${BITBUCKET_BRANCH}/${EPOCH}"
+          # Build .so files using cython
+          - echo -e "Starting the python script buildCythonLambda to build .so files"
+          # Move to within ai folder so as to reuse existing logic
+          - mv buildCythonLambda.py ai/ && cd ai
+          # -j is the param used to decide how many files need to be converted to ".so" in parallel
+          - python buildCythonLambda.py build_ext -j 2 --inplace "api"
+          # Delete all py and c files
+          - rm -f api/lambda/*/*py api/lambda/*/*.c
+          - cd $BITBUCKET_CLONE_DIR
+          # Replace placeholders in the Swagger file and copy it to Core bucket
+          - apigateway_title="${PROJECT_SHORT_NAME}-${VERTICAL_NAME}-${DEPLOYMENT_ENV}"
+          - /bin/bash ai/scripts/replace-swagger-placeholders.sh ai-api-definition.yaml ${apigateway_title}
+          - aws s3 cp ai/api/api-def/ai-api-definition.yaml s3://${core_bucket_name}/${artifacts_prefix}/verticals/ai/api-def/ --profile ${BITBUCKET_BRANCH}
+          # Copy infra template to Core bucket, validate the cft's.
+          - aws s3 cp ai/infra/cf-templates/ai-infra-master-cf.yaml s3://${core_bucket_name}/${artifacts_prefix}/cf-templates/verticals/ai/ai-infra-master-cf.yaml --profile ${BITBUCKET_BRANCH}
+          - aws cloudformation validate-template --profile ${BITBUCKET_BRANCH} --region ${REGION} --template-url https://${core_bucket_name}.s3.amazonaws.com/${artifacts_prefix}/cf-templates/verticals/ai/ai-infra-master-cf.yaml
+          # Copy api template to Core bucket, validate the cft's
+          - aws s3 cp ai/api/cf-templates/ai-api-master-cf.yaml s3://${core_bucket_name}/${artifacts_prefix}/cf-templates/verticals/ai/ai-api-master-cf.yaml --profile ${BITBUCKET_BRANCH}
+          - aws cloudformation validate-template --profile ${BITBUCKET_BRANCH} --region ${REGION} --template-url https://${core_bucket_name}.s3.amazonaws.com/${artifacts_prefix}/cf-templates/verticals/ai/ai-api-master-cf.yaml
+          # Copy UI files to Core Bucket
+          - aws s3 cp --recursive ai/web-app/ s3://${core_bucket_name}/${artifacts_prefix}/verticals/ai/web-app/ --profile ${BITBUCKET_BRANCH}
+          # Steps to build, tag and push the AI Lambda image to Sandbox account's ECR
+          - DOCKER_LAMBDA_REPO="$(aws ssm get-parameter --name "AMORPHIC.COREBUCKET.LAMBDAECRREPOSITORY" --profile ${BITBUCKET_BRANCH} --output text --query 'Parameter.Value')"
+          - AI_IMAGE_URI="$DOCKER_LAMBDA_REPO:ai-$BITBUCKET_COMMIT"
+          - echo Commencing AI Lambda image creation and deployment
+          # Logging into Amazon ECR of Sandbox account
+          - echo Logging in to Amazon ECR of Sandbox account
+          - aws ecr get-login-password --region $BB_AI_ECR_REGION --profile "dev_internal"| docker login --username AWS --password-stdin $BB_AI_ECR_ACCOUNT_ID.dkr.ecr.$BB_AI_ECR_REGION.amazonaws.com
+          # Build and tag image for AI Lambda
+          - echo Building and tagging the Docker image for packages for AI Lambdas
+          - docker build --label "cwdl.api.version=${VERSION}" --build-arg BASE_IMAGE="$ADP_CICD_ECR_REPOSITORY:ai-lambda-base-image" -t $AI_IMAGE_URI -f ai/docker-images/Dockerfile_FinalImage .
+          # Logging into Amazon ECR of target account
+          - echo Logging in to Amazon ECR of target account - ${BITBUCKET_BRANCH}
+          - aws ecr get-login-password --region $REGION --profile ${BITBUCKET_BRANCH} | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.$REGION.amazonaws.com
+          # Push the image to ECR target account
+          - echo Pushing the Docker image to Amazon ECR of target account
+          - docker push $AI_IMAGE_URI
+          - echo AI Lambda image built, tagged and pushed to ECR of Target account
+          - echo Build and Upload AI Artifacts is completed successfully
+          # Export epoch to artifact file
+          - echo "export EPOCH=${EPOCH}" > epoch_data.conf
+        artifacts:
+          - epoch_data.conf
+    - step: &build-upload-trace-artifacts
+        name: Build & Upload TRACE Artifacts
+        max-time: 15 #Step will timeout after 15 mins
+        oidc: true
+        services:
+          - docker
+        caches:
+          - docker
+        script:
+          - *config_bootstrap_job_definition_trace
+          # Check if the ALB Domain alias or certificate is N/A
+          # If these details are not provided, stop the pipeline
+          - |
+            if [[ "${TRACE_ALB_DOMAIN_ALIAS}" == "N/A" || "${TRACE_ALB_CERTIFICATE_ARN}" == "N/A" ]]; then
+              echo "Trace cannot be deployed without a custom domain and certificate for the Trace Application Load Balancer"
+              exit 1
+            fi
+          - cd $BITBUCKET_CLONE_DIR
+          # Setting S3 artifacts location
+          - EPOCH=$(date +"%s")
+          - artifacts_prefix="adp/aws/${VERSION}/${BITBUCKET_BRANCH}/${EPOCH}"
+          # Build .so files using cython
+          - echo -e "Starting the python script buildCythonLambda to build .so files"
+          # Move to within trace folder so as to reuse existing logic
+          - mv buildCythonLambda.py trace/ && cd trace
+          # -j is the param used to decide how many files need to be converted to ".so" in parallel
+          - python buildCythonLambda.py build_ext -j 2 --inplace "api"
+          # Delete all py and c files
+          - rm -f api/lambda/*/*py api/lambda/*/*.c
+          - cd $BITBUCKET_CLONE_DIR
+          # Replace placeholders in the Swagger file and copy it to Core bucket
+          - apigateway_title="${PROJECT_SHORT_NAME}-${VERTICAL_NAME}-${DEPLOYMENT_ENV}"
+          - /bin/bash trace/scripts/replace-swagger-placeholders.sh trace-api-definition.yaml ${apigateway_title}
+          - aws s3 cp trace/api/api-def/trace-api-definition.yaml s3://${core_bucket_name}/${artifacts_prefix}/verticals/trace/api-def/ --profile ${BITBUCKET_BRANCH}
+          # Copy infra template to Core bucket, validate the cft's.
+          - aws s3 cp trace/infra/cf-templates/trace-infra-master-cf.yaml s3://${core_bucket_name}/${artifacts_prefix}/cf-templates/verticals/trace/trace-infra-master-cf.yaml --profile ${BITBUCKET_BRANCH}
+          - aws cloudformation validate-template --profile ${BITBUCKET_BRANCH} --region ${REGION} --template-url https://${core_bucket_name}.s3.amazonaws.com/${artifacts_prefix}/cf-templates/verticals/trace/trace-infra-master-cf.yaml
+          # Copy api template to Core bucket, validate the cft's
+          - aws s3 cp trace/api/cf-templates/trace-api-master-cf.yaml s3://${core_bucket_name}/${artifacts_prefix}/cf-templates/verticals/trace/trace-api-master-cf.yaml --profile ${BITBUCKET_BRANCH}
+          - aws cloudformation validate-template --profile ${BITBUCKET_BRANCH} --region ${REGION} --template-url https://${core_bucket_name}.s3.amazonaws.com/${artifacts_prefix}/cf-templates/verticals/trace/trace-api-master-cf.yaml
+          # Copy the trace bootstrap files to corebucket
+          - aws s3 cp --recursive trace/trace-bootstrap-files/ s3://${core_bucket_name}/${artifacts_prefix}/verticals/trace/trace-bootstrap-files/ --profile ${BITBUCKET_BRANCH}
+          # Copy UI files to Core Bucket
+          - aws s3 cp --recursive trace/web-app/ s3://${core_bucket_name}/${artifacts_prefix}/verticals/trace/web-app/ --profile ${BITBUCKET_BRANCH}
+          # Steps to build, tag and push the Trace Lambda image to target account's ECR
+          - DOCKER_LAMBDA_REPO="$(aws ssm get-parameter --name "AMORPHIC.COREBUCKET.LAMBDAECRREPOSITORY" --profile ${BITBUCKET_BRANCH} --output text --query 'Parameter.Value')"
+          - TRACE_IMAGE_URI="$DOCKER_LAMBDA_REPO:trace-$BITBUCKET_COMMIT"
+          - echo Commencing TRACE Lambda image creation and deployment
+          # Build and tag image for TRACE Lambda
+          - echo Building and tagging the Docker image for packages for TRACE Lambdas
+          - docker build --label "cwdl.api.version=${VERSION}" -t $TRACE_IMAGE_URI -f trace/docker-images/Dockerfile_FinalImage .
+          # Logging into Amazon ECR of target account
+          - echo Logging in to Amazon ECR of target account - ${BITBUCKET_BRANCH}
+          - aws ecr get-login-password --region $REGION --profile ${BITBUCKET_BRANCH} | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.$REGION.amazonaws.com
+          # Push the image to ECR
+          - echo Pushing the Docker image to Amazon ECR of Target account
+          - docker push $TRACE_IMAGE_URI
+          - echo TRACE Lambda image built, tagged and pushed to ECR of Target account
+          - echo Build and Upload TRACE Artifacts is completed successfully
+          # Export epoch to artifact file
+          - echo "export EPOCH=${EPOCH}" > epoch_data.conf
+        artifacts:
+          - epoch_data.conf
+    - step: &trigger-idp-code-build
+        name: Trigger IDP CodeBuild Project
+        max-time: 15 #Step will timeout after 15 mins
+        oidc: true
+        script:
+          - *config_bootstrap_job_definition_idp
+          - source epoch_data.conf
+          # Setting S3 bucket related parameters
+          - web_bucket_name="${PROJECT_SHORT_NAME}-${VERTICAL_NAME}-${REGION}-${ACCOUNT_ID}-${ENVIRONMENT}-web"
+          - artifacts_prefix="adp/aws/${VERSION}/${BITBUCKET_BRANCH}/${EPOCH}"
+          # Setting Cognito related parameters
+          - |
+            if [ "$ENFORCE_COGNITO_MFA" == "OPTIONAL" ]; then
+              enforce_mfa="OPTIONAL"
+            elif [ "$ENFORCE_COGNITO_MFA" == "MANDATORY" ]; then
+              enforce_mfa="MANDATORY"
+            elif [ "$ENFORCE_COGNITO_MFA" != "OFF" ]; then
+              enforce_mfa="OPTIONAL"
+            fi
+          - app_web_domain="N/A"
+          - token_scopes_array="N/A"
+          - identity_provider="N/A"
+          - |
+            if [[ "${ENABLE_IDP}" == "yes" && "${ENABLE_SAML_IDP}" == "yes" && "${SAML_IDP_METADATA_URL}" != "N/A" && "${SAML_IDP_METADATA_URL}" != "n/a" && "${SAML_IDP_SERVER_URL}" != "n/a" && "${SAML_IDP_SERVER_URL}" != "N/A" ]]; then
+            echo "SAML Okta IDP is enabled for Cognito"
+            app_web_domain=$(aws ssm get-parameter --name "AMORPHIC.WEB.COGNITODOMAINURL" --profile ${BITBUCKET_BRANCH} --output text --query 'Parameter.Value' 2> /dev/null)
+            SAML_TOKEN_SCOPES_ARRAY=$(echo $SAML_TOKEN_SCOPES_ARRAY | sed 's/\[/\["/g' | sed 's/\]/"\]/g' | sed 's/,/","/g')
+            token_scopes_array="'$SAML_TOKEN_SCOPES_ARRAY'"
+            identity_provider=$SAML_IDP_NAME
+            fi
+            if [[ "${ENABLE_IDP}" == "yes" && "${ENABLE_GOOGLE_IDP}" == "yes" && "${GOOGLE_IDP_CLIENT_ID}" != "N/A" && "${GOOGLE_IDP_CLIENT_ID}" != "n/a" && "${GOOGLE_IDP_CLIENT_SECRET}" != "N/A" && "${GOOGLE_IDP_CLIENT_SECRET}" != "n/a" ]]; then
+            echo "Google IDP is enabled for Cognito"
+            app_web_domain=$(aws ssm get-parameter --name "AMORPHIC.WEB.COGNITODOMAINURL" --profile ${BITBUCKET_BRANCH} --output text --query 'Parameter.Value' 2> /dev/null)
+            GOOGLE_TOKEN_SCOPES_ARRAY=$(echo $GOOGLE_TOKEN_SCOPES_ARRAY | sed 's/\[/\["/g' | sed 's/\]/"\]/g' | sed 's/,/","/g')
+            token_scopes_array="'$GOOGLE_TOKEN_SCOPES_ARRAY'"
+            identity_provider=$GOOGLE_IDP_NAME
+            fi
+          # Copying buildspec file to master's core bucket, using BB OIDC role
+          - aws s3 cp idp/infra/buildspec.yaml s3://${core_bucket_name_master}/verticals/idp/buildspec.yaml
+          # Triggering CodeBuild build, using BB OIDC role
+          - aws codebuild start-build --project-name ${CODEBUILD_PROJECT_NAME} --region ${region_master} --image-override $DEPLOY_CB_RUNNER_IMAGE --buildspec-override arn:aws:s3:::${core_bucket_name_master}/verticals/idp/buildspec.yaml
+              --environment-variables-override name=core_bucket_name,value="$core_bucket_name",type=PLAINTEXT
+                                               name=artifacts_bucket_name,value="$core_bucket_name",type=PLAINTEXT
+                                               name=deployment_environment,value="$BITBUCKET_BRANCH",type=PLAINTEXT
+                                               name=deploy_region,value="$REGION",type=PLAINTEXT
+                                               name=deployment_source,value="Bitbucket",type=PLAINTEXT
+                                               name=tag_name,value="$BITBUCKET_COMMIT",type=PLAINTEXT
+                                               name=project_name,value="$PROJECT_NAME",type=PLAINTEXT
+                                               name=project_short_name,value="$PROJECT_SHORT_NAME",type=PLAINTEXT
+                                               name=version,value="$VERSION",type=PLAINTEXT
+                                               name=cross_account_role_arn,value="$DEPLOYMENT_ROLE",type=PLAINTEXT
+                                               name=cross_account_externalid,value="$EXTERNAL_ID",type=PLAINTEXT
+                                               name=vertical_name,value="$VERTICAL_NAME",type=PLAINTEXT
+                                               name=artifacts_prefix,value="$artifacts_prefix",type=PLAINTEXT
+                                               name=acm_certificate_arn,value="$IDP_ACM_CERTIFICATE_ARN",type=PLAINTEXT
+                                               name=acm_domain_alias,value="$IDP_ACM_DOMAIN_ALIAS",type=PLAINTEXT
+                                               name=web_bucket_name,value="$web_bucket_name",type=PLAINTEXT
+                                               name=enforce_mfa,value="$enforce_mfa",type=PLAINTEXT
+                                               name=enable_idp,value="$ENABLE_IDP",type=PLAINTEXT
+                                               name=app_web_domain,value="$app_web_domain",type=PLAINTEXT
+                                               name=token_scopes_array,value="$token_scopes_array",type=PLAINTEXT
+                                               name=identity_provider,value="$identity_provider",type=PLAINTEXT
+                                               name=user_id,value="$userId",type=PLAINTEXT
+                                               name=api_custom_domain_name,value="$IDP_API_DOMAIN_ALIAS",type=PLAINTEXT
+                                               name=enable_fips,value="$ENABLE_FIPS",type=PLAINTEXT
+                                               name=markup_cost,value="$markupCost",type=PLAINTEXT
+    - step: &trigger-ai-code-build
+        name: Trigger AI CodeBuild Project
+        max-time: 15 #Step will timeout after 15 mins
+        oidc: true
+        script:
+          - *config_bootstrap_job_definition_ai
+          - source epoch_data.conf
+          # Setting S3 bucket related parameters
+          - web_bucket_name="${PROJECT_SHORT_NAME}-${VERTICAL_NAME}-${REGION}-${ACCOUNT_ID}-${ENVIRONMENT}-web"
+          - artifacts_prefix="adp/aws/${VERSION}/${BITBUCKET_BRANCH}/${EPOCH}"
+          # Setting Cognito related parameters
+          - |
+            if [ "$ENFORCE_COGNITO_MFA" == "OPTIONAL" ]; then
+              enforce_mfa="OPTIONAL"
+            elif [ "$ENFORCE_COGNITO_MFA" == "MANDATORY" ]; then
+              enforce_mfa="MANDATORY"
+            elif [ "$ENFORCE_COGNITO_MFA" != "OFF" ]; then
+              enforce_mfa="OPTIONAL"
+            fi
+          - app_web_domain="N/A"
+          - token_scopes_array="N/A"
+          - identity_provider="N/A"
+          - |
+            if [[ "${ENABLE_IDP}" == "yes" && "${ENABLE_SAML_IDP}" == "yes" && "${SAML_IDP_METADATA_URL}" != "N/A" && "${SAML_IDP_METADATA_URL}" != "n/a" && "${SAML_IDP_SERVER_URL}" != "n/a" && "${SAML_IDP_SERVER_URL}" != "N/A" ]]; then
+            echo "SAML Okta IDP is enabled for Cognito"
+            app_web_domain=$(aws ssm get-parameter --name "AMORPHIC.WEB.COGNITODOMAINURL" --profile ${BITBUCKET_BRANCH} --output text --query 'Parameter.Value' 2> /dev/null)
+            SAML_TOKEN_SCOPES_ARRAY=$(echo $SAML_TOKEN_SCOPES_ARRAY | sed 's/\[/\["/g' | sed 's/\]/"\]/g' | sed 's/,/","/g')
+            token_scopes_array="'$SAML_TOKEN_SCOPES_ARRAY'"
+            identity_provider=$SAML_IDP_NAME
+            fi
+            if [[ "${ENABLE_IDP}" == "yes" && "${ENABLE_GOOGLE_IDP}" == "yes" && "${GOOGLE_IDP_CLIENT_ID}" != "N/A" && "${GOOGLE_IDP_CLIENT_ID}" != "n/a" && "${GOOGLE_IDP_CLIENT_SECRET}" != "N/A" && "${GOOGLE_IDP_CLIENT_SECRET}" != "n/a" ]]; then
+            echo "Google IDP is enabled for Cognito"
+            app_web_domain=$(aws ssm get-parameter --name "AMORPHIC.WEB.COGNITODOMAINURL" --profile ${BITBUCKET_BRANCH} --output text --query 'Parameter.Value' 2> /dev/null)
+            GOOGLE_TOKEN_SCOPES_ARRAY=$(echo $GOOGLE_TOKEN_SCOPES_ARRAY | sed 's/\[/\["/g' | sed 's/\]/"\]/g' | sed 's/,/","/g')
+            token_scopes_array="'$GOOGLE_TOKEN_SCOPES_ARRAY'"
+            identity_provider=$GOOGLE_IDP_NAME
+            fi
+          - summarization_models="'$SUMMARIZATION_MODELS'"
+          # Copying buildspec file to master's core bucket, using BB OIDC role
+          - aws s3 cp ai/infra/buildspec.yaml s3://${core_bucket_name_master}/verticals/ai/buildspec.yaml
+          # Triggering CodeBuild build, using BB OIDC role
+          - aws codebuild start-build --project-name ${CODEBUILD_PROJECT_NAME} --region ${region_master} --image-override $DEPLOY_CB_RUNNER_IMAGE --buildspec-override arn:aws:s3:::${core_bucket_name_master}/verticals/ai/buildspec.yaml
+              --environment-variables-override name=core_bucket_name,value="$core_bucket_name",type=PLAINTEXT
+                                               name=artifacts_bucket_name,value="$core_bucket_name",type=PLAINTEXT
+                                               name=deployment_environment,value="$BITBUCKET_BRANCH",type=PLAINTEXT
+                                               name=deploy_region,value="$REGION",type=PLAINTEXT
+                                               name=project_name,value="$PROJECT_NAME",type=PLAINTEXT
+                                               name=project_short_name,value="$PROJECT_SHORT_NAME",type=PLAINTEXT
+                                               name=version,value="$VERSION",type=PLAINTEXT
+                                               name=cross_account_role_arn,value="$DEPLOYMENT_ROLE",type=PLAINTEXT
+                                               name=cross_account_externalid,value="$EXTERNAL_ID",type=PLAINTEXT
+                                               name=vertical_name,value="$VERTICAL_NAME",type=PLAINTEXT
+                                               name=artifacts_prefix,value="$artifacts_prefix",type=PLAINTEXT
+                                               name=acm_certificate_arn,value="$AI_ACM_CERTIFICATE_ARN",type=PLAINTEXT
+                                               name=rag_engines,value="$RAG_ENGINES",type=PLAINTEXT
+                                               name=embedded_chatbots_lambda_image_uri,value="$EMBEDDED_CHATBOTS_LAMBDA_IMAGE_URI",type=PLAINTEXT
+                                               name=summarization_models,value="$summarization_models",type=PLAINTEXT
+                                               name=rag_engine_port,value="$RAG_PORT",type=PLAINTEXT
+                                               name=acm_domain_alias,value="$AI_ACM_DOMAIN_ALIAS",type=PLAINTEXT
+                                               name=web_bucket_name,value="$web_bucket_name",type=PLAINTEXT
+                                               name=enforce_mfa,value="$enforce_mfa",type=PLAINTEXT
+                                               name=enable_idp,value="$ENABLE_IDP",type=PLAINTEXT
+                                               name=app_web_domain,value="$app_web_domain",type=PLAINTEXT
+                                               name=token_scopes_array,value="$token_scopes_array",type=PLAINTEXT
+                                               name=identity_provider,value="$identity_provider",type=PLAINTEXT
+                                               name=user_id,value="$userId",type=PLAINTEXT
+                                               name=ecr_region,value="$BB_AI_ECR_REGION",type=PLAINTEXT
+                                               name=ecr_account_id,value="$BB_AI_ECR_ACCOUNT_ID",type=PLAINTEXT
+                                               name=account_id,value="$ACCOUNT_ID",type=PLAINTEXT
+                                               name=tag_name,value="$BITBUCKET_COMMIT",type=PLAINTEXT
+                                               name=api_custom_domain_name,value="$AI_API_DOMAIN_ALIAS",type=PLAINTEXT
+                                               name=enable_fips,value="$ENABLE_FIPS",type=PLAINTEXT
+    - step: &trigger-trace-code-build
+        name: Trigger TRACE CodeBuild Project
+        max-time: 15 #Step will timeout after 15 mins
+        oidc: true
+        script:
+          - *config_bootstrap_job_definition_trace
+          - source epoch_data.conf
+          - artifacts_prefix="adp/aws/${VERSION}/${BITBUCKET_BRANCH}/${EPOCH}"
+          # Setting Cognito related parameters
+          - |
+            if [ "$ENFORCE_COGNITO_MFA" == "OPTIONAL" ]; then
+              enforce_mfa="OPTIONAL"
+            elif [ "$ENFORCE_COGNITO_MFA" == "MANDATORY" ]; then
+              enforce_mfa="MANDATORY"
+            elif [ "$ENFORCE_COGNITO_MFA" != "OFF" ]; then
+              enforce_mfa="OPTIONAL"
+            fi
+          - app_web_domain="N/A"
+          - token_scopes_array="N/A"
+          - identity_provider="N/A"
+          - |
+            if [[ "${ENABLE_IDP}" == "yes" && "${ENABLE_SAML_IDP}" == "yes" && "${SAML_IDP_METADATA_URL}" != "N/A" && "${SAML_IDP_METADATA_URL}" != "n/a" && "${SAML_IDP_SERVER_URL}" != "n/a" && "${SAML_IDP_SERVER_URL}" != "N/A" ]]; then
+            echo "SAML Okta IDP is enabled for Cognito"
+            app_web_domain=$(aws ssm get-parameter --name "AMORPHIC.WEB.COGNITODOMAINURL" --profile ${BITBUCKET_BRANCH} --output text --query 'Parameter.Value' 2> /dev/null)
+            token_scopes_array="'$SAML_TOKEN_SCOPES_ARRAY'"
+            identity_provider=$SAML_IDP_NAME
+            fi
+            if [[ "${ENABLE_IDP}" == "yes" && "${ENABLE_GOOGLE_IDP}" == "yes" && "${GOOGLE_IDP_CLIENT_ID}" != "N/A" && "${GOOGLE_IDP_CLIENT_ID}" != "n/a" && "${GOOGLE_IDP_CLIENT_SECRET}" != "N/A" && "${GOOGLE_IDP_CLIENT_SECRET}" != "n/a" ]]; then
+            echo "Google IDP is enabled for Cognito"
+            app_web_domain=$(aws ssm get-parameter --name "AMORPHIC.WEB.COGNITODOMAINURL" --profile ${BITBUCKET_BRANCH} --output text --query 'Parameter.Value' 2> /dev/null)
+            token_scopes_array="'$GOOGLE_TOKEN_SCOPES_ARRAY'"
+            identity_provider=$GOOGLE_IDP_NAME
+            fi
+          # Copying buildspec file to master's core bucket, using BB OIDC role
+          - aws s3 cp trace/infra/buildspec.yaml s3://${core_bucket_name_master}/verticals/trace/buildspec.yaml
+          # Triggering CodeBuild build, using BB OIDC role
+          - aws codebuild start-build --project-name ${CODEBUILD_PROJECT_NAME} --region ${region_master} --image-override $DEPLOY_CB_RUNNER_IMAGE --buildspec-override arn:aws:s3:::${core_bucket_name_master}/verticals/trace/buildspec.yaml
+              --environment-variables-override name=core_bucket_name,value="$core_bucket_name",type=PLAINTEXT
+                                               name=artifacts_bucket_name,value="$core_bucket_name",type=PLAINTEXT
+                                               name=deployment_environment,value="$BITBUCKET_BRANCH",type=PLAINTEXT
+                                               name=deploy_region,value="$REGION",type=PLAINTEXT
+                                               name=project_name,value="$PROJECT_NAME",type=PLAINTEXT
+                                               name=project_short_name,value="$PROJECT_SHORT_NAME",type=PLAINTEXT
+                                               name=version,value="$VERSION",type=PLAINTEXT
+                                               name=cross_account_role_arn,value="$DEPLOYMENT_ROLE",type=PLAINTEXT
+                                               name=cross_account_externalid,value="$EXTERNAL_ID",type=PLAINTEXT
+                                               name=vertical_name,value="$VERTICAL_NAME",type=PLAINTEXT
+                                               name=enforce_mfa,value="$enforce_mfa",type=PLAINTEXT
+                                               name=enable_idp,value="$ENABLE_IDP",type=PLAINTEXT
+                                               name=app_web_domain,value="$app_web_domain",type=PLAINTEXT
+                                               name=token_scopes_array,value="$token_scopes_array",type=PLAINTEXT
+                                               name=identity_provider,value="$identity_provider",type=PLAINTEXT
+                                               name=artifacts_prefix,value="$artifacts_prefix",type=PLAINTEXT
+                                               name=acm_certificate_arn,value="$TRACE_ACM_CERTIFICATE_ARN",type=PLAINTEXT
+                                               name=alb_custom_domain_alias,value="$TRACE_ALB_DOMAIN_ALIAS",type=PLAINTEXT
+                                               name=alb_acm_certificate_arn,value="$TRACE_ALB_CERTIFICATE_ARN",type=PLAINTEXT
+                                               name=api_custom_domain_name,value="$TRACE_API_DOMAIN_ALIAS",type=PLAINTEXT
+                                               name=ui_custom_domain_name,value="$TRACE_UI_DOMAIN_ALIAS",type=PLAINTEXT
+                                               name=enable_fips,value="$ENABLE_FIPS",type=PLAINTEXT
+                                               name=user_id,value="$userId",type=PLAINTEXT
+                                               name=ecr_region,value="$BB_AI_ECR_REGION",type=PLAINTEXT
+                                               name=ecr_account_id,value="$BB_AI_ECR_ACCOUNT_ID",type=PLAINTEXT
+                                               name=account_id,value="$ACCOUNT_ID",type=PLAINTEXT
+                                               name=tag_name,value="$BITBUCKET_COMMIT",type=PLAINTEXT
+                                               name=trace_instance_type,value="$TRACE_INSTANCE_TYPE",type=PLAINTEXT
+    - step: &build-upload-quicksight-artifacts
+        name: Build & Upload Quicksight Artifacts
+        max-time: 15 #Step will timeout after 15 mins
+        oidc: true
+        services:
+          - docker
+        caches:
+          - docker
+        script:
+          - *config_bootstrap_job_definition_qs
+          - cd $BITBUCKET_CLONE_DIR
+          # Setting S3 artifacts location
+          - EPOCH=$(date +"%s")
+          - artifacts_prefix="adp/aws/${VERSION}/${BITBUCKET_BRANCH}/${EPOCH}"
+          # Copy infra template to Core bucket, validate the cft's.
+          - aws s3 cp quicksight/infra/cf-templates/quicksight-infra-master-cf.yaml s3://${core_bucket_name}/${artifacts_prefix}/cf-templates/verticals/quicksight/quicksight-infra-master-cf.yaml --profile ${BITBUCKET_BRANCH}
+          - aws cloudformation validate-template --profile ${BITBUCKET_BRANCH} --region ${REGION} --template-url https://${core_bucket_name}.s3.amazonaws.com/${artifacts_prefix}/cf-templates/verticals/quicksight/quicksight-infra-master-cf.yaml
+          # Export epoch to artifact file
+          - echo "export EPOCH=${EPOCH}" > epoch_data.conf
+        artifacts:
+          - epoch_data.conf
+    - step: &trigger-quicksight-code-build
+        name: Trigger Quicksight CodeBuild Project
+        max-time: 15 #Step will timeout after 15 mins
+        oidc: true
+        script:
+          - *config_bootstrap_job_definition_qs
+          - source epoch_data.conf
+          - artifacts_prefix="adp/aws/${VERSION}/${BITBUCKET_BRANCH}/${EPOCH}"
+          # Copying buildspec file to master's core bucket, using BB OIDC role
+
+          - aws s3 cp quicksight/infra/buildspec.yaml s3://${core_bucket_name_master}/verticals/bi/buildspec.yaml
+          # Triggering CodeBuild build, using BB OIDC role
+          - aws codebuild start-build --project-name ${CODEBUILD_PROJECT_NAME} --region ${region_master} --image-override $DEPLOY_CB_RUNNER_IMAGE --buildspec-override arn:aws:s3:::${core_bucket_name_master}/verticals/bi/buildspec.yaml
+              --environment-variables-override name=core_bucket_name,value="$core_bucket_name",type=PLAINTEXT
+                                               name=deployment_environment,value="$BITBUCKET_BRANCH",type=PLAINTEXT
+                                               name=deploy_region,value="$REGION",type=PLAINTEXT
+                                               name=artifacts_bucket_name,value="$core_bucket_name",type=PLAINTEXT
+                                               name=artifacts_prefix,value="$artifacts_prefix",type=PLAINTEXT
+                                               name=project_short_name,value="$PROJECT_SHORT_NAME",type=PLAINTEXT
+                                               name=cross_account_role_arn,value="$DEPLOYMENT_ROLE",type=PLAINTEXT
+                                               name=cross_account_externalid,value="$EXTERNAL_ID",type=PLAINTEXT
+                                               name=vertical_name,value="$VERTICAL_NAME",type=PLAINTEXT
+                                               name=user_id,value="$userId",type=PLAINTEXT
+                                               name=account_id,value="$ACCOUNT_ID",type=PLAINTEXT
+                                               name=account_name,value="$ACCOUNT_NAME",type=PLAINTEXT
+                                               name=edition,value="$EDITION",type=PLAINTEXT
+                                               name=authentication_method,value="$AUTHENTICATION_METHOD",type=PLAINTEXT
+                                               name=notification_email,value="$NOTIFICATION_EMAIL",type=PLAINTEXT
+    - step: &fetch_config
+        name: Fetch Config
+        max-time: 10
+        size: 4x
+        script:
+          - if [[ $(git ls-remote --heads git@bitbucket.org:cloudwick-labs/amorphic-config.git ${BITBUCKET_BRANCH}) != "" ]]; then config_branch=${BITBUCKET_BRANCH}; else config_branch="develop"; fi
+          - git submodule init && git submodule update --remote --no-fetch && git submodule foreach git fetch origin ${config_branch} && git submodule foreach git checkout ${config_branch}
+        artifacts:
+          - "amorphic-config/**"
+
+options:
+  runtime:
+    cloud:
+      atlassian-ip-ranges: true
+
+    # - step: &sync_dev_environment
+    #     name: sync dev environment
+    #     max-time: 10
+    #     oidc: true
+    #     script:
+    #       - pip install atlassian-python-api==3.11.0
+    #       - TOOLS_REPO="amorphic-internal"
+    #       - git clone --depth 1 --branch master git@bitbucket.org:cloudwick-labs/${TOOLS_REPO}.git
+    #       - for ENV in dev2 dev3 dev4; do
+    #           python ${BITBUCKET_CLONE_DIR}/${TOOLS_REPO}/amorphic-dev-sync/sync_dev_env.py $BITBUCKET_BRANCH $ENV $BITBUCKET_REPO_SLUG $BITBUCKET_APP_USER $BITBUCKET_APP_PASSWORD;
+    #         done
+pipelines:
+#Automated pipelines, runs with every push
+  branches:
+    'cloud-*':
+      - parallel:
+          fail-fast: true
+          steps:
+            - step: *api-def-validate
+            - step: *idp-pylint-full-code
+    'cloud-ai-*':
+      - parallel:
+          fail-fast: true
+          steps:
+            - step: *ai-api-def-validate
+            - step: *ai-pylint-full-code
+    'cloud-idp-*':
+      - parallel:
+          fail-fast: true
+          steps:
+            - step: *idp-api-def-validate
+            - step: *idp-pylint-full-code
+    'develop':
+      - parallel:
+          fail-fast: true
+          steps:
+            - step: *api-def-validate
+            - step: *cflint_codebase
+            - step: *idp-pylint-full-code
+            - step: *ai-pylint-full-code
+      # - step: *sync_dev_environment
+    'master':
+      - parallel:
+          fail-fast: true
+          steps:
+            - step: *api-def-validate
+            - step: *cflint_codebase
+            - step: *idp-pylint-full-code
+            - step: *ai-pylint-full-code
+  custom:
+    deploy-idp:
+      - variables:
+        - name: userId # Amorphic userId of the user who deploys IDP
+          description: Amorphic userId of the user who deploys IDP vertical. This user will be given access to the vertical.
+        - name: markupCost
+          default: ''
+          description: Set an integer value for the Markup Cost, without any symbols or leave it as empty
+      - step: *fetch_config
+      - parallel:
+          fail-fast: true
+          steps:
+            - step: *idp-api-def-validate
+            - step: *idp-pylint-full-code
+            - step: *cflint_codebase
+      - step: *build-upload-idp-artifacts
+      - step: *trigger-idp-code-build
+    deploy-ai:
+      - variables:
+        -
+          name: userId # Amorphic userId of the user who deploys IDP
+          description: Amorphic userId of the user who deploys AI vertical. This user will be given access to the vertical.
+      - step: *fetch_config
+      - parallel:
+          fail-fast: true
+          steps:
+            - step: *ai-api-def-validate
+            - step: *ai-pylint-full-code
+            - step: *cflint_codebase
+      - step: *build-upload-ai-artifacts
+      - step: *trigger-ai-code-build
+    deploy-quicksight:
+      - variables:
+        -
+          name: userId # Amorphic userId of the user who deploys Quicksight vertical
+          description: Amorphic userId of the user who deploys Quicksight vertical. This user will be given access to the vertical.
+      - step: *fetch_config
+      - step: *build-upload-quicksight-artifacts
+      - step: *trigger-quicksight-code-build
+    deploy-trace:
+      - variables:
+        -
+          name: userId # Amorphic userId of the user who deploys Trace vertical
+          description: Amorphic userId of the user who deploys Trace vertical. This user will be given access to the vertical.
+      - step: *fetch_config
+      - parallel:
+          fail-fast: true
+          steps:
+            - step: *trace-api-def-validate
+            - step: *trace-pylint-full-code
+            - step: *cflint_codebase
+      - step: *build-upload-trace-artifacts
+      - step: *trigger-trace-code-build

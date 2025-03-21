@@ -1,0 +1,22 @@
+{
+    "Admins": [
+        "datastores.fullaccess",
+        "pipelines.fullaccess",
+        "templates.fullaccess",
+        "users.fullaccess",
+        "management.fullaccess"
+    ],
+    "Developers": [
+        "datastores.fullaccess",
+        "pipelines.fullaccess",
+        "templates.fullaccess",
+        "users.list"
+    ],
+    "Users": [
+        "datastores.list",
+        "datastores.view",
+        "pipelines.list",
+        "pipelines.view",
+        "users.list"
+    ]
+}

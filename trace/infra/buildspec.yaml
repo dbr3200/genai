@@ -1,0 +1,500 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo deployment environment is $deployment_environment
+      - echo deployment triggered by user - $user_id
+      - echo deployment triggered from - $deployment_source
+      - echo preparing to deploy TRACE into region - $deploy_region
+      - echo customer account core bucket name is $core_bucket_name
+      - echo artifacts bucket name is $artifacts_bucket_name
+      - echo api artifacts prefix is $artifacts_prefix
+      - echo project short name is $project_short_name
+      - echo cross account role arn is $cross_account_role_arn
+      - echo cross_account_externalid is $cross_account_externalid
+      - echo vertical name is $vertical_name
+      # Env varibales for docker operations
+      - echo CMP ECR account id $cmp_account_id
+      - echo CICD ECR account region $cmp_region
+      - echo Lambda image tag is $tag_name
+      - echo CMP ecr repo uri is $cmp_ecr_repo_uri
+      - echo custom domain name for API endpoint is $api_custom_domain_name
+      - echo custom domain name for UI cloudfront is $ui_custom_domain_name
+      # Download CF templates from artifacts bucket
+      - echo downloading CF templates to local
+      - aws s3 cp s3://$artifacts_bucket_name/$artifacts_prefix/cf-templates/verticals/trace/trace-infra-master-cf.yaml .
+      - aws s3 cp s3://$artifacts_bucket_name/$artifacts_prefix/cf-templates/verticals/trace/trace-api-master-cf.yaml .
+      # Download webapp code from artifacts bucket
+      - echo downloading webapp code contents to local
+      - aws s3 cp s3://$artifacts_bucket_name/$artifacts_prefix/verticals/trace/web-app/ ./web-app --recursive --quiet
+      - echo command ls output is...
+      - ls -altr
+      # Check the deployment source - CMP/Bitbucket
+      # If the deployment is from CMP, copy the lambda ECR image from
+      # CMP account to target account
+      # If the deployment is from BB, the image will be already present
+      # in the target ECR.
+      # Pull image from ECR (CMP - master/develop)
+      - |
+        if [ "$deployment_source" = "CMP" ]; then
+          aws ecr get-login-password --region $cmp_region | docker login --username AWS --password-stdin $cmp_account_id.dkr.ecr.$cmp_region.amazonaws.com
+          docker pull ${cmp_ecr_repo_uri}:${tag_name}
+          # Download cleanupUtil from CMP artifact bucket
+          aws s3 cp s3://$artifacts_bucket_name/$artifacts_prefix/cleanup-util/cleanupUtil.py .
+        else
+          # Download cleanupUtil from dev env core bucket
+          aws s3 cp s3://${core_bucket_name}/cleanup-util/cleanupUtil.py .
+        fi
+      - echo command ls output is...
+      - ls -altr
+      # Assume cross account role,save credentials to access_credentials file and execute the file
+      - aws sts assume-role --role-arn ${cross_account_role_arn} --role-session-name verticals-cicd --external-id ${cross_account_externalid} > tmp.json;
+      - echo "export AWS_ACCESS_KEY_ID=`cat tmp.json | jq '.Credentials.AccessKeyId'`" > access_credentials
+      - echo "export AWS_SECRET_ACCESS_KEY=`cat tmp.json | jq '.Credentials.SecretAccessKey'`" >> access_credentials
+      - echo "export AWS_SESSION_TOKEN=`cat tmp.json | jq '.Credentials.SessionToken'`" >> access_credentials
+      - echo "export AWS_REGION=$deploy_region">> access_credentials
+      - . ./access_credentials
+  build:
+    commands:
+      - echo starting API deploy process
+      # Updating TRACE specific parameters in SSM
+      - |
+        if [ "$enable_fips" = "no" ]; then
+          api_custom_domain_name="N/A"
+        fi
+      - aws ssm put-parameter --name "AMORPHIC.TRACE.CONFIG.VERTICALNAME" --value $vertical_name --type String --overwrite
+      - aws ssm put-parameter --name "AMORPHIC.TRACE.CONFIG.ACMCERTIFICATEARN" --value $acm_certificate_arn --type String --overwrite
+      - aws ssm put-parameter --name "AMORPHIC.TRACE.CONFIG.APICUSTOMDOMAINNAME" --value $api_custom_domain_name --type String --overwrite
+      - aws ssm put-parameter --name "AMORPHIC.TRACE.CONFIG.UICUSTOMDOMAINNAME" --value $ui_custom_domain_name --type String --overwrite
+      - aws ssm put-parameter --name "AMORPHIC.TRACE.CONFIG.TRACEINSTANCETYPE" --value $trace_instance_type --type String --overwrite
+      - aws ssm put-parameter --name "AMORPHIC.TRACE.CONFIG.ALBCUSTOMDOMAINALIAS" --value $alb_custom_domain_alias --type String --overwrite
+      - aws ssm put-parameter --name "AMORPHIC.TRACE.CONFIG.ALBACMCERTIFICATEARN" --value $alb_acm_certificate_arn --type String --overwrite
+      - |
+        if [ "$deployment_source" = "CMP" ]; then
+          # Get SSM parameter for ECR Repository URI
+          target_ecr_repo_uri="$(aws ssm get-parameter --name "AMORPHIC.COREBUCKET.LAMBDAECRREPOSITORY" --output text --query 'Parameter.Value')"
+          # Tag and push TRACE Lambda image to target account's ECR
+          docker tag ${cmp_ecr_repo_uri}:${tag_name} ${target_ecr_repo_uri}:${tag_name}
+          # Logging into Amazon ECR of target account
+          echo Logging in to Amazon ECR of target account
+          aws ecr get-login-password --region $deploy_region | docker login --username AWS --password-stdin $account_id.dkr.ecr.$deploy_region.amazonaws.com
+          # Push the image to ECR of target account
+          echo Pushing the TRACE Lambda Docker image to target account ECR
+          docker push ${target_ecr_repo_uri}:${tag_name}
+          echo image pushed successfully to target account
+        fi
+      - echo deploying infra and api stack
+      # AWS CloudFormation - Deploy commands - All Infra related resources
+      - aws cloudformation deploy --template-file trace-infra-master-cf.yaml --stack-name ${project_short_name}-${deployment_environment}-verticals-trace-infra --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND --role-arn ${cross_account_role_arn} --s3-bucket ${core_bucket_name} --s3-prefix cf-templates/${deployment_environment}/verticals/trace/infra --parameter-overrides "pSSMArtifactsPrefixPlaceholder=${artifacts_prefix}" --no-fail-on-empty-changeset
+      # AWS CloudFormation - Deploy commands - All API related resources
+      - |
+        if [ "$deployment_source" = "CMP" ]; then
+          aws cloudformation deploy --template-file trace-api-master-cf.yaml --stack-name ${project_short_name}-${deployment_environment}-verticals-trace-api --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND --role-arn ${cross_account_role_arn} --s3-bucket ${core_bucket_name} --s3-prefix cf-templates/${deployment_environment}/verticals/trace/api --parameter-overrides "pSSMFileLoadStatusTableStreamArn=/${project_short_name}/${deployment_environment}/dynamoDB/FileLoadStatusTableStreamArn" "pSSMArtifactsPrefixPlaceholder=${artifacts_prefix}" --no-fail-on-empty-changeset || true
+        else
+          aws ssm put-parameter --name "AMORPHIC.TRACE.CONFIG.TRACELAMBDAECRTAG" --value $tag_name --type String --overwrite
+          aws cloudformation deploy --template-file trace-api-master-cf.yaml --stack-name ${project_short_name}-${deployment_environment}-verticals-trace-api --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND --role-arn ${cross_account_role_arn} --s3-bucket ${core_bucket_name} --s3-prefix cf-templates/${deployment_environment}/verticals/trace/api --parameter-overrides "pSSMFileLoadStatusTableStreamArn=/${project_short_name}/${deployment_environment}/dynamoDB/FileLoadStatusTableStreamArn" "pSSMArtifactsPrefixPlaceholder=${artifacts_prefix}"  "pSSMTRACELambdaECRTag=AMORPHIC.TRACE.CONFIG.TRACELAMBDAECRTAG" --no-fail-on-empty-changeset || true
+        fi
+      - |
+        STACK_STATUS=$(aws cloudformation describe-stacks --stack-name ${project_short_name}-${deployment_environment}-verticals-trace-api --query 'Stacks[0].StackStatus' --output text)
+        if [ "$STACK_STATUS" = "CREATE_FAILED" ] || [ "$STACK_STATUS" = "ROLLBACK_FAILED" ] || [ "$STACK_STATUS" = "DELETE_FAILED" ]; then
+        echo "Stack in failure state: $STACK_STATUS. Initiating cleanup."
+        python -c "
+        import os
+        import boto3
+        import cleanupUtil
+
+        PROJECT_SHORT_NAME = os.environ['project_short_name']
+        ENVIRONMENT = os.environ['deployment_environment']
+        REGION = os.environ['AWS_REGION']
+        ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
+        SECRET_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
+        SESSION_TOKEN = os.environ['AWS_SESSION_TOKEN']
+        VERTICAL_NAME = os.environ['vertical_name']
+
+        boto3_session = boto3.Session(
+          aws_access_key_id=ACCESS_KEY_ID,
+          aws_secret_access_key=SECRET_KEY,
+          aws_session_token=SESSION_TOKEN,
+          region_name=REGION
+        )
+
+        event = {
+          'Configurations': {
+            'ProjectShortName': PROJECT_SHORT_NAME,
+            'Environment': ENVIRONMENT,
+            'Region': REGION
+          }
+        }
+
+        cleanupUtil.remove_deletion_protection(event, boto3_session, VERTICAL_NAME)
+        "
+        exit 1
+        else
+        echo "No failure state detected. Exiting without cleanup."
+        fi
+      - |
+        if [ "$enable_fips" = "yes" ]; then
+          rest_api_id=$(aws ssm get-parameter --name AMORPHIC.TRACE.API.APIGATEWAY --with-decryption --output text --query Parameter.Value)
+          echo $rest_api_id
+          execute_api_endpoint_status=$(aws apigateway get-rest-api --rest-api-id $rest_api_id | jq .'disableExecuteApiEndpoint')
+          echo $execute_api_endpoint_status
+          if [ "$execute_api_endpoint_status" = "false" ]; then
+            aws apigateway update-rest-api --rest-api-id $rest_api_id --patch-operations op=replace,path=/disableExecuteApiEndpoint,value='True'
+            aws apigateway create-deployment --rest-api-id $rest_api_id --stage-name $deployment_environment
+          fi
+        fi
+      - echo API deploy process is completed, starting UI build and deploy
+      # UI deploy commands
+      # Fetch the Cognito, cloudfront and API gateway related details from SSM
+      - cognito_user_pool_id="$(aws ssm get-parameter --name "AMORPHIC.COGNITO.USERPOOLID" --output text --query 'Parameter.Value')"
+      - cognito_identity_pool_id="$(aws ssm get-parameter --name "AMORPHIC.COGNITO.IDENTITYPOOLID" --output text --query 'Parameter.Value')"
+      - app_client_id="$(aws ssm get-parameter --name "AMORPHIC.COGNITO.USERPOOLCLIENTID" --output text --query 'Parameter.Value')"
+      - parent_app_id="$(aws ssm get-parameter --name AMORPHIC.WEB.CLOUDFRONTDOMAINID --output text --query 'Parameter.Value')"
+      - api_gateway_id="$(aws ssm get-parameter --name "AMORPHIC.TRACE.API.APIGATEWAY" --output text --query 'Parameter.Value')"
+      - |
+        if [ "$enable_fips" = "yes" ]; then
+          api_url="https://$api_custom_domain_name/"
+        else
+          api_url="https://$api_gateway_id.execute-api.${deploy_region}.amazonaws.com/${deployment_environment}/"
+        fi
+      - amorphic_portal_url="$(aws ssm get-parameter --name "AMORPHIC.CONFIG.PORTALURL" --output text --query 'Parameter.Value')"
+      - email_domains="$(aws ssm get-parameter --name "AMORPHIC.CONFIG.USEREMAILDOMAIN" --output text --query 'Parameter.Value')"
+      - amorphic_apigateway_url="$(aws ssm get-parameter --name "AMORPHIC.APIGATEWAY.APIURLWITHSTAGE" --output text --query 'Parameter.Value')"
+      - email_domains_list=[$(echo "$email_domains" | sed 's/[^,]*/"&"/g')]
+      # Create the config.json file with generated values
+      - touch config.json
+      - |
+        cat > config.json <<EOF
+        {
+          "PROJECT_NAME": "$project_name",
+          "PROJECT_SHORT_NAME": "$project_short_name",
+          "VERTICAL_NAME": "$vertical_name",
+          "ENVIRONMENT": "$deployment_environment",
+          "VERSION": "$version",
+          "region": "$deploy_region",
+          "userPool": "$cognito_user_pool_id",
+          "identityPool": "$cognito_identity_pool_id",
+          "parent_app_id": "$parent_app_id",
+          "ENFORCE_COGNITO_MFA": "$enforce_mfa",
+          "Domain":$email_domains_list,
+          "clientId":"$app_client_id",
+          "API_gateway":"$api_url",
+          "AMORPHIC_APIGATEWAY_URL":"$amorphic_apigateway_url",
+          "AMORPHIC_PORTAL_URL":"$amorphic_portal_url",
+          "TRACE_ALB_DOMAIN":"https://$alb_custom_domain_alias"
+        }
+        EOF
+        if [ "$enable_idp" = "yes" ] && [ "$app_web_domain" != "N/A" ] && [ "$token_scopes_array" != "N/A" ] && [ "$identity_provider" != "N/A" ]; then
+        echo "IDP is enabled for Cognito, adding additional params to config.json file..."
+        sed -i '$d' config.json
+        cat << EOT >> config.json
+          ,"APP_WEB_DOMAIN": "$app_web_domain",
+          "TOKEN_SCOPES_ARRAY": $token_scopes_array,
+          "IDENTITY_PROVIDER": "$identity_provider",
+          "ENABLE_IDP": "$enable_idp"
+        }
+        EOT
+        fi
+      - echo "Generated UI config file:"
+      - cat config.json
+      - mkdir -p web-app/src/
+      - cp config.json web-app/src/
+      - cd web-app
+      - echo command ls output is...
+      - ls -latr
+      - yarn
+      - echo completed yarn install.
+      - echo running yarn build...
+      - yarn build
+      - echo completed yarn build.
+      - echo syncing the latest built packages to web bucket.
+      - web_bucket_name="${project_short_name}-${vertical_name}-${deploy_region}-${account_id}-${deployment_environment}-web"
+      - webstack_folder_tgt="s3://$web_bucket_name/"
+      - index_file_tgt="s3://$web_bucket_name/index.html"
+      - echo $web_bucket_name
+      - ls -ltr
+      - aws s3 sync public/ ${webstack_folder_tgt} --exclude index.html --quiet --cache-control max-age=86400
+      - aws s3 cp public/index.html ${index_file_tgt} --metadata-directive REPLACE --cache-control max-age=0,no-cache,must-revalidate --content-type text/html
+      - aws s3 cp src/config.json s3://$web_bucket_name/config.json
+      - echo completed syncing built packages to web bucket.
+      # Get the cloudfront Distribution ID
+      - cloudfront_distribution_id=`aws ssm get-parameter --name "AMORPHIC.TRACE.INFRA.CLOUDFRONTDISTRIBUTIONID" --query 'Parameter.Value' --output text 2> /dev/null` || true
+      - echo cloudfront distribution id is $cloudfront_distribution_id
+      - echo invalidating the cloudfront distribution with new changes...
+      # Create cloudfront invalidations needed
+      - AWS_MAX_ATTEMPTS=10 aws cloudfront create-invalidation --distribution-id ${cloudfront_distribution_id} --paths "/*"
+      - echo completed invalidating the cloudfront distribution.
+      - echo UI build and deploy process is completed.
+      - echo Updating verticals table with metadata about TRACE, if necessary
+      - amorphic_verticals_table=`aws ssm get-parameter --name "/${project_short_name}/${deployment_environment}/dynamoDB/verticalsTable" --query 'Parameter.Value' --output text 2> /dev/null` || true
+      - acl_resources_table=`aws ssm get-parameter --name "/${project_short_name}/${deployment_environment}/dynamoDB/aclResourcesTable" --query 'Parameter.Value' --output text 2> /dev/null` || true
+      - trace_dashboards_table=`aws ssm get-parameter --name "/${project_short_name}/${vertical_name}/${deployment_environment}/dynamoDB/traceDashboardsTable" --query 'Parameter.Value' --output text 2> /dev/null` || true
+      - cloudfront_domain_name=`aws ssm get-parameter --name "AMORPHIC.TRACE.INFRA.CLOUDFRONTDOMAINNAME" --query 'Parameter.Value' --output text 2> /dev/null` || true
+      - |
+        if [ "$ui_custom_domain_name" = "N/A" ]; then
+          trace_portal_url="${cloudfront_domain_name}"
+        else
+          trace_portal_url="https://${ui_custom_domain_name}"
+        fi
+      - vertical_description="TRACE Application"
+      - |
+        python -c "
+        import os
+        import sys
+        import uuid
+        from datetime import datetime
+        import boto3
+        from boto3.dynamodb.conditions import Key
+
+        try:
+            # Set your variables
+            REGION=os.environ['AWS_REGION']
+            ACCESS_KEY_ID=os.environ['AWS_ACCESS_KEY_ID']
+            SECRET_KEY=os.environ['AWS_SECRET_ACCESS_KEY']
+            SESSION_TOKEN=os.environ['AWS_SESSION_TOKEN']
+
+            VERTICAL_NAME=os.environ['vertical_name']
+            VERTICAL_DESCRIPTION=os.environ['vertical_description']
+            CF_PORTAL_URL=os.environ['trace_portal_url']
+            PROJECT_SHORT_NAME=os.environ['project_short_name']
+            USER_ID=os.environ['user_id']
+
+            boto3_session = boto3.Session(aws_access_key_id=ACCESS_KEY_ID, aws_secret_access_key=SECRET_KEY, aws_session_token=SESSION_TOKEN, region_name=REGION)
+            DYNAMODB_RES = boto3_session.resource('dynamodb')
+
+            VERTICALS_TABLE_NAME=os.environ['amorphic_verticals_table']
+            TRACE_DB_TABLE_NAME=os.environ['trace_dashboards_table']
+            TRACE_ALB_CUSTOM_DOMAIN=os.environ['alb_custom_domain_alias']
+            ACL_RESOURCES_TABLE_NAME=os.environ['acl_resources_table']
+
+            VERTICALS_TABLE = DYNAMODB_RES.Table(VERTICALS_TABLE_NAME)
+            TRACE_DB_TABLE = DYNAMODB_RES.Table(TRACE_DB_TABLE_NAME)
+            ACL_RESOURCES_TABLE = DYNAMODB_RES.Table(ACL_RESOURCES_TABLE_NAME)
+
+        except Exception as exc:
+            print('Failed to set environment variables with: {}'.format(exc))
+            sys.exit()
+
+        def main():
+            print('Updating metadata in Amorphic DDB tables')
+            # Scan the DynamoDB table
+            response = VERTICALS_TABLE.scan(
+                FilterExpression=boto3.dynamodb.conditions.Attr('VerticalType').eq(VERTICAL_NAME)
+            )
+
+            # Extract values from the response
+            is_vertical_deployed = response['Count']
+            if is_vertical_deployed > 0:
+                portal_url = response['Items'][0]['Url']
+                vertical_id = response['Items'][0]['VerticalId']
+                created_by = response['Items'][0]['CreatedBy']
+                creation_time = response['Items'][0]['CreationTime']
+                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                if portal_url != CF_PORTAL_URL:
+                    portal_url = CF_PORTAL_URL
+            else:
+                if not USER_ID:
+                    print('user_id is a mandatory attribute for fresh deployment of the vertical')
+                    sys.exit()
+                portal_url = CF_PORTAL_URL
+                vertical_id = str(uuid.uuid4())
+                created_by = USER_ID
+                creation_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            with VERTICALS_TABLE.batch_writer() as batch:
+                batch.put_item(
+                        Item={
+                            'VerticalId': vertical_id,
+                            'VerticalName': f'{PROJECT_SHORT_NAME}-{VERTICAL_NAME}',
+                            'VerticalType': VERTICAL_NAME,
+                            'CreationTime': creation_time,
+                            'CreatedBy': created_by,
+                            'Description': VERTICAL_DESCRIPTION,
+                            'Url': portal_url,
+                            'LastModifiedTime': current_time,
+                            'LastModifiedBy': 'System'
+                        }
+                    )
+            # Insert the default dashboard details to the
+            # trace dashboards table
+            if is_vertical_deployed == 0:
+                with TRACE_DB_TABLE.batch_writer() as batch:
+                    batch.put_item(
+                        {
+                            'DashboardId': 'adp_api_stats',
+                            'DashboardName': 'Amorphic Data Platform API Statistics',
+                            'DashboardDescription': 'This dashboard displays Amorphic data platform Rest API statistics, like total requests segregated on success vs failures, success percentage of Amorphic Rest APIs',
+                            'DashboardLink': f'https://{TRACE_ALB_CUSTOM_DOMAIN}/d/adp_api_stats',
+                            'CreatedBy': 'System',
+                            'CreationTime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            'IsDefaultDashboard': True
+                        }
+                    )
+                    batch.put_item(
+                        {
+                            'DashboardId': 'adp_backend_services_stats',
+                            'DashboardName': 'Amorphic Data Platform Backend Services Statistics',
+                            'DashboardDescription': 'This dashboard displays Amorphic backbone backend services statistics like Lambda invocations, throttles, durations and StateMachines success vs failures.',
+                            'DashboardLink': f'https://{TRACE_ALB_CUSTOM_DOMAIN}/d/adp_backend_services_stats',
+                            'CreatedBy': 'System',
+                            'CreationTime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            'IsDefaultDashboard': True
+                        }
+                    )
+                    batch.put_item(
+                        {
+                            'DashboardId': 'adp_infra_stats',
+                            'DashboardName': 'Amorphic Data Platform Infrastructure',
+                            'DashboardDescription': 'This dashboard displays Amorphic core infrastructure statistics like Squid Proxy & Trace Servers CPU & Memory utilization.',
+                            'DashboardLink': f'https://{TRACE_ALB_CUSTOM_DOMAIN}/d/adp_infra_stats',
+                            'CreatedBy': 'System',
+                            'CreationTime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            'IsDefaultDashboard': True
+                        }
+                    )
+                    batch.put_item(
+                        {
+                            'DashboardId': 'adp_support_services_stats',
+                            'DashboardName': 'Amorphic Data Platform Supporting Services Statistics',
+                            'DashboardDescription': 'This dashboard displays other multiple supporting services statistics like LLM Models latency & invocations, DMS Latencies at source and target, total number of service resources utilized.',
+                            'DashboardLink': f'https://{TRACE_ALB_CUSTOM_DOMAIN}/d/adp_support_services_stats',
+                            'CreatedBy': 'System',
+                            'CreationTime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            'IsDefaultDashboard': True
+                        }
+                    )
+                    batch.put_item(
+                        {
+                            'DashboardId': 'adp_user_activity',
+                            'DashboardName': 'Amorphic Data Platform User Activity',
+                            'DashboardDescription': 'This dashboard displays users activity within Amorphic, like assets owned by User, Write activities performed by user.',
+                            'DashboardLink': f'https://{TRACE_ALB_CUSTOM_DOMAIN}/d/adp_user_activity',
+                            'CreatedBy': 'System',
+                            'CreationTime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            'IsDefaultDashboard': True
+                        }
+                    )
+            # Add entry to ACL Resources table if no user/tag has access on the vertical
+            key_condition_expression = Key('ResourceId').eq(vertical_id) & Key('TagAccessKey').begins_with('verticals')
+            access_control_response = ACL_RESOURCES_TABLE.query(
+                KeyConditionExpression=key_condition_expression
+            )
+            acl_item_count = access_control_response['Count']
+            if acl_item_count == 0:
+                with ACL_RESOURCES_TABLE.batch_writer() as batch:
+                    batch.put_item(
+                        Item={
+                            'ResourceId': vertical_id,
+                            'TagAccessKey': f'verticals#user#{created_by}#owner',
+                            'AdditionalMetadata': {},
+                            'CreatedBy': 'System',
+                            'CreatedTime': current_time,
+                            'LastModifiedBy': 'System',
+                            'LastModifiedTime': current_time,
+                            'ResourceName': f'{PROJECT_SHORT_NAME}-{VERTICAL_NAME}',
+                            'ResourceType': 'verticals'
+                        }
+                    )
+
+            print('Successfully updated metadata in Amorphic DDB tables')
+        if __name__=='__main__':
+            main()
+        "
+      - echo Updating enabled verticals list ssm parameter, if necessary
+      - |
+        enabled_verticals_list=`aws ssm get-parameter --name "AMORPHIC.CONFIG.ENABLEDVERTICALSLIST" --query 'Parameter.Value' --output text 2> /dev/null` || true
+        if [ -z "$enabled_verticals_list" ]; then
+          aws ssm put-parameter --name "AMORPHIC.CONFIG.ENABLEDVERTICALSLIST" --value "$vertical_name" --type String --overwrite
+        elif [ `echo ${enabled_verticals_list} | grep -c ${vertical_name}` -ne 1 ]; then
+          updated_verticals_list="$enabled_verticals_list,$vertical_name"
+          aws ssm put-parameter --name "AMORPHIC.CONFIG.ENABLEDVERTICALSLIST" --value "$updated_verticals_list" --type String --overwrite
+        fi
+      - echo TRACE build and deploy process is completed.
+  post_build:
+    commands:
+      - echo Entering post build phase
+      - echo Build phase status is $CODEBUILD_BUILD_SUCCEEDING
+      # Update vertical deployment status in DynamoDB if the deployment was from CMP
+      - |
+        if [ "$deployment_source" = "CMP" ]; then
+        # Remove the cross account access role from the session
+        unset AWS_SESSION_TOKEN
+        unset AWS_ACCESS_KEY_ID
+        unset AWS_SECRET_ACCESS_KEY
+        python -c "
+        import os
+        import boto3
+        from datetime import datetime
+
+        APPLICATION_ID = os.environ['application_id']
+        APPLICATIONS_TABLE_NAME = os.environ['applications_table_name']
+        VERTICAL_NAME = os.environ['vertical_name']
+        DEPLOYMENT_STATUS = os.environ['CODEBUILD_BUILD_SUCCEEDING'] # Env variable provided by CodeBuild
+
+        VERTICALS_STATUS_READY = 'ready'
+        VERTICALS_STATUS_ERROR = 'error'
+
+        DYNAMODB_RESOURCE = boto3.resource('dynamodb')
+        APPLICATIONS_TABLE = DYNAMODB_RESOURCE.Table(APPLICATIONS_TABLE_NAME)
+
+        def get_application_metadata():
+            '''
+            Get application metadata from DDB
+            '''
+            print(f'In get_application_metadata, getting details of app id {APPLICATION_ID}')
+            application_item = APPLICATIONS_TABLE.get_item(
+                Key = {
+                    'ApplicationId': APPLICATION_ID
+                }
+            )
+            print('In get_application_metadata, exiting method')
+            return application_item['Item']
+
+        def update_verticals_deployment_status(application_item):
+            '''
+            Update vertical deployment status in dynamo db
+            '''
+            print('In update_verticals_deployment_status, updating metadata')
+
+            # If DEPLOYMENT_STATUS is 1 then build was successfull, 0 otherwise
+            if DEPLOYMENT_STATUS == '1':
+                application_item['VerticalsConfig'][VERTICAL_NAME].update({
+                    'VerticalStatus': VERTICALS_STATUS_READY
+                })
+                application_item['Configurations'].setdefault('EnabledVerticalsList', []).append(VERTICAL_NAME)
+                # Dedup the verticals list, incase of multiple deployments this will get added to existing list
+                application_item['Configurations']['EnabledVerticalsList'] = list(set(application_item['Configurations']['EnabledVerticalsList']))
+            else:
+                application_item['VerticalsConfig'][VERTICAL_NAME].update({
+                    'VerticalStatus': VERTICALS_STATUS_ERROR
+                })
+
+            update_expression = 'SET LastModifiedTime = :val1, VerticalsConfig = :val2, Configurations = :val3'
+            expression_attributes = {
+                ':val1': str(datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')),
+                ':val2': application_item['VerticalsConfig'],
+                ':val3': application_item['Configurations']
+            }
+
+            response = APPLICATIONS_TABLE.update_item(
+                Key=  {
+                    'ApplicationId': APPLICATION_ID
+                },
+                UpdateExpression = update_expression,
+                ExpressionAttributeValues = expression_attributes
+            )
+            print('In update_verticals_deployment_status, exiting method')
+
+        def main():
+            '''
+            Main Method
+            '''
+            # Get the application metadata
+            application_item = get_application_metadata()
+            update_verticals_deployment_status(application_item)
+
+        if __name__ == '__main__':
+            main()
+        "
+        fi

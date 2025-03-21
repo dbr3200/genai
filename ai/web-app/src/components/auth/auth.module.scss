@@ -1,0 +1,109 @@
+.promotionsSection {
+  @apply hidden md:block md:w-8/12 bg-gradient-to-br from-amorphicBlue to-regalBlue;
+
+  .image {
+    @apply w-full h-screen object-cover;
+  }
+}
+
+.coverTextBlock {
+  @apply absolute w-1/2 bottom-12 left-20 rtl:right-20 rtl:left-auto text-white font-robotoRegular;
+  @apply bg-black/50 rounded-lg p-4;
+
+  .heading {
+    @apply text-5xl leading-[4rem] font-bold font-arlon;
+  }
+
+  .subHeading {
+    @apply mt-2 mb-20 text-2xl;
+  }
+}
+
+.main {
+  @apply lg:flex-none w-full h-screen overflow-y-auto md:w-4/12 mb-20 md:mb-0 font-robotoRegular;
+
+  .helperSection {
+    @apply w-full flex md:gap-1 justify-end md:justify-between items-center mt-4 px-6 md:px-8 text-sm;
+  }
+
+  .languageSelector {
+    @apply p-1 border-[1px] rounded-md hover:shadow-2xl hover:bg-platinum;
+  }
+
+  .link {
+    @apply text-sm font-medium text-amorphicBlue hover:text-regalBlue;
+  }
+
+  .formContainer {
+    @apply pt-14 px-6 mx-auto w-full max-w-sm lg:w-96;
+
+    .pageHeading {
+      @apply mt-14 mb-10 text-[2rem] font-bold;
+    }
+
+    .resetPwdDescription {
+      @apply mt-2 mb-10;
+    }
+
+    .actionButtonsContainer {
+      @apply flex gap-6 items-center md:mt-8 mb-9 md:mb-5;
+
+      .signInButton {
+        @apply w-full min-h-[48px] rounded-none md:py-0 md:static md:rounded-md bg-primary-300;
+        @apply max-md:disabled:bg-secondary-200;
+      }
+
+      .signInButtonIDP {
+        @apply w-full min-h-[48px] rounded-none md:py-0 md:static md:rounded-md bg-primary-300;
+        @apply max-md:disabled:bg-secondary-200;
+      }
+    }
+
+    .reEnterUsername {
+      @apply text-sm mx-[-5px] inline text-amorphicBlue hover:text-regalBlue !important;
+    }
+
+    .resetRequest,
+    .registerBtn,
+    .continueBtn {
+      @apply w-full min-h-[48px] bottom-0 left-0 fixed py-6 rounded-none md:py-0 md:static md:mb-5;
+      @apply md:rounded-md bg-regalBlue text-platinum;
+    }
+
+    .formSubmitErrorMsg {
+      @apply text-sm font-robotoMedium text-salsa leading-none my-2;
+    }
+
+    .helperSectionMobile {
+      @apply mt-4 text-sm flex gap-1 md:hidden;
+    }
+
+    .fieldContainer {
+      @apply min-h-[60px] my-5;
+    }
+
+    .resendBtn {
+      @apply text-sm text-amorphicBlue uppercase hover:text-regalBlue inline mx-[-5px] !important;
+    }
+
+    .verificationCodeErrorMsg {
+      @apply font-normal tracking-wide font-robotoRegular text-salsa text-xs mt-1;
+    }
+  }
+
+  .copyrightBlock {
+    @apply my-6 text-sm md:hidden text-gray;
+  }
+
+  .forgotPwd {
+    .pageHeading {
+      @apply mb-0;
+    }
+  }
+}
+
+:global(.dark) {
+  .main {
+    @apply text-ashGray;
+  }
+}

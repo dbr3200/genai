@@ -1,0 +1,9 @@
+.container {
+  @apply w-full h-full flex justify-center items-center bg-opacity-50;
+}
+
+:global(.dark) {
+  .container {
+    @apply bg-dark1;
+  }
+}

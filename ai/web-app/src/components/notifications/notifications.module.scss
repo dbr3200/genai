@@ -1,0 +1,28 @@
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0%);
+  }
+}
+
+.notificationContainer {
+  @apply absolute w-full md:w-auto top-0 md:top-[16px] md:right-[16px];
+
+  .slideIn {
+    @apply w-[92vw] md:w-[25rem] border border-platinum mx-auto pointer-events-auto;
+
+    z-index: 2060;
+    animation-name: slideIn;
+    animation-duration: 0.3s;
+    animation-timing-function: ease-in-out;
+  }
+}
+
+:global(.dark) {
+  .slideIn {
+    @apply border-dark3;
+  }
+}

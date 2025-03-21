@@ -1,0 +1,41 @@
+.paginationContainer {
+  @apply flex flex-row items-center text-jetGray gap-2 min-h-[2rem] w-auto shrink-0;
+
+  li {
+    @apply flex items-center justify-center bg-white shadow rounded-md h-7 min-w-[1.75rem];
+
+    a {
+      @apply h-full w-full flex items-center justify-center;
+    }
+
+    &[class~="disabled"] {
+      @apply cursor-not-allowed bg-ashGray;
+
+      a {
+        @apply cursor-not-allowed;
+      }
+    }
+
+    &.active {
+      @apply bg-regalBlue text-white;
+    }
+  }
+}
+
+:global(.dark) {
+  .paginationContainer {
+    @apply text-platinum;
+
+    li {
+      @apply bg-dark1;
+
+      &[class~="disabled"] {
+        @apply bg-darkBorder;
+      }
+
+      &.active {
+        @apply bg-regalBlue text-white;
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+.linkContainer {
+  @apply relative flex gap-2 items-center p-1 mb-4 rounded-3xl bg-white w-fit border border-secondary-100;
+
+  .link {
+    @apply w-36 relative p-1 text-secondary-200 text-center font-regular text-lg rounded-2xl shadow-none;
+  }
+
+  .active {
+    @apply font-medium text-white bg-primary-300;
+  }
+
+  .link:not(.active) {
+    @apply hover:bg-secondary-100;
+  }
+}

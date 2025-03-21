@@ -1,0 +1,34 @@
+.container {
+  @apply w-full min-h-[fit-content] flex flex-col justify-center border
+    rounded font-robotoBold border-dashed p-4;
+
+  .uploadButton {
+    @apply bg-white text-secondary-500 rounded-xl px-2 active:bg-white/50 hover:!bg-white/50;
+  }
+
+  .uploadingMsgContainer {
+    @apply absolute inset-0 bg-dark-100/80 flex justify-center z-10 rounded-md;
+
+    .uploadingMsg {
+      @apply flex flex-col py-2 items-center gap-2;
+    }
+  }
+}
+
+.uploadedFileCard {
+  @apply flex items-center justify-between w-full px-4 !bg-secondary-200;
+}
+
+.drag {
+  @apply bg-gray/50;
+}
+
+:global(.dark) {
+  .container {
+    @apply bg-dark2 text-platinum;
+  }
+
+  .drag {
+    @apply bg-dark3;
+  }
+}

@@ -1,0 +1,11 @@
+.container {
+  @apply relative flex-grow bg-[#F4F7FA] transition-all delay-200 overflow-auto h-full p-5 rounded-tl-2xl;
+}
+
+:global(.dark) .container {
+  @apply bg-secondary-500;
+}
+
+.noPadding {
+  @apply px-0;
+}

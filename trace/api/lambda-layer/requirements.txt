@@ -1,0 +1,4 @@
+boto3==1.34.66
+botocore==1.34.66
+pyjwt[crypto]==2.8.0
+requests==2.32.0

@@ -1,0 +1,2294 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: ['AWS::Serverless-2016-10-31']
+Description: To Deploy AI API related resources
+Globals:
+  Function:
+    LoggingConfig:
+      ApplicationLogLevel: INFO
+      LogFormat: JSON
+    Environment:
+      Variables:
+        accountId: !Ref 'AWS::AccountId'
+        awsRegion: !Ref 'AWS::Region'
+        awsPartition: !Ref 'AWS::Partition'
+        environment: !Ref pSSMEnvironment
+        projectName: !Ref pSSMProjectName
+        projectShortName: !Ref pSSMProjectShortName
+        verticalName: !Ref pSSMVerticalName
+        userPoolId: !Ref pSSMUserPoolId
+        # Enable Identity Provider
+        enableIDP: !Ref pSSMEnableIDP
+        RAGHost: !Ref pSSMDBRAGHost
+        RAGPort: !Ref pSSMDBRAGPort
+        RAGDatabase: !Ref pSSMRAGDBName
+        apiGateway: !Ref rSSMApiGateway
+        ragEngines: !Ref pSSMRagEngines
+        AWS_USE_FIPS_ENDPOINT: !If [ cIsFIPSEnabled, 'True', 'False' ]
+  Api:
+    OpenApiVersion: 3.0.1
+Parameters:
+  pSSMArtifactsPrefixPlaceholder:
+    Description: Core bucket prefix for storing the Artifacts
+    Type: String
+  pSSMS3BucketsName:
+    Description: Contains list of names of s3 buckets
+    Type: AWS::SSM::Parameter::Value<List<String>>
+    Default: AMORPHIC.CONFIG.BUCKETLIST
+  pSSMEnvironment:
+    Description: Environment
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.ENVIRONMENT
+  pSSMProjectShortName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.PROJECTSHORTNAME
+  pSSMVerticalsPrivateSubnet1ID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Verticals Private subnet 1 ID
+    Default: AMORPHIC.VPC.VERTICALSPRIVATESUBNET1ID
+  pSSMVerticalsPrivateSubnet2ID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Verticals Private subnet 2 ID
+    Default: AMORPHIC.VPC.VERTICALSPRIVATESUBNET2ID
+  pSSMSquidPrivateSubnetID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Amorphic Squid Proxy private subnet ID
+    Default: AMORPHIC.VPC.PRIVATESUBNET3ID
+  pSSMLambdaSG:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.SECURITY.LAMBDASECURITYGROUP
+  pSSMProjectName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.PROJECTNAME
+  pSSMVerticalName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.AI.CONFIG.VERTICALNAME
+  pSSMRagEngines:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Enabled Rag Engines
+    Default: AMORPHIC.AI.CONFIG.RAGENGINES
+  pSSMEnableWAF:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Flag to deploy the WAF resources or not
+    Default: AMORPHIC.CONFIG.ENABLEWAF
+  pSSMWebACLId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.WEB.WAFREGIONALWEBACL
+  pSSMAccessLogsFormat:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.ACCESSLOGSSFORMAT
+  pSSMCloudwatchRoleArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.SECURITY.APIGATEWAYCLOUDWATCHLOGSROLEARN
+  pSSMEnableBucketVersioning:
+    Description: Enable Bucket Versioning on all s3 buckets
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.ENABLEBUCKETVERSIONING
+  pSSMUserPoolId:
+    Description: Amorphic Cognito User Pool Id
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.COGNITO.USERPOOLID
+  pSSMSESAWSRegion:
+    Description: Which AWS ses region to use for email alerts.
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.SESAWSREGION
+  pSSMFileLoadStatusTableStreamArn:
+    Description: Dymamodb FileLoadStatusTable StreamArn
+    Type: AWS::SSM::Parameter::Value<String>
+  # Enable Identity Provider
+  pSSMEnableIDP:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.ENABLEIDP
+  pSSMSESEmailFrom:
+    Description: SES FROM email address to send notifications.
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.SESFROMEMAIL
+  pSSMEnableMultiTenancy:
+    Description: "Enable multi tenancy flag"
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.ENABLEMULTITENANCY
+  pSSMKMSKeysList:
+    Type: AWS::SSM::Parameter::Value<List<String>>
+    Description: Customer Owned Customer managed key list
+    Default: AMORPHIC.COREBUCKET.KMSKEYSLIST
+  pSSMRAGServiceUserSecretArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: RAG Service user secret ID
+    Default: AMORPHIC.RAG.RAGSERVICEUSERSECRETARN
+  pSSMDBRAGHost:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: RAG Engine Host
+    Default: AMORPHIC.RAG.RAGHOST
+  pSSMDBRAGPort:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: RAG Engine Port
+    Default: AMORPHIC.RAG.RAGPORT
+  pSSMRAGDBName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: RAG Engine database
+    Default: AMORPHIC.CONFIG.DBNAME
+  pSSMSummarizationModels:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Summarization models
+    Default: AMORPHIC.AI.CONFIG.SUMMARIZATIONMODELS
+  pSSMAILambdaECRRepositoryUri:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: URI for AI Lambda ECR Repository
+    Default: AMORPHIC.COREBUCKET.LAMBDAECRREPOSITORY
+  pSSMLambdaExecRoles:
+    Type: AWS::SSM::Parameter::Value<List<String>>
+    Default: AMORPHIC.AI.INFRA.LAMBDAEXECROLES
+  pWorkingDirectory:
+    Type: String
+    Default: /var/task/
+  # The pSSMAILambdaECRTag parameter is to uniquely distiguish AI Lambda image with dynamic tagging
+  # This ensures that changes made to the Lambda will be pushed to ECR along with Amorphic version change
+  # This parameter will be overridden with the BITBUCKET_COMMIT for internal deployments
+  pSSMAILambdaECRTag:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.VERSION
+  pSSMDBRAGEngineClusterArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.RAG.RAGCLUSTERARN
+  pSSMVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: "version"
+    Default: AMORPHIC.CONFIG.VERSION
+  pSSMAPIGWRoleArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: "api gw lambda invoke role"
+    Default: AMORPHIC.SECURITY.APIGATEWAYLAMBDAINVOKEROLEARN
+  pSSMEnableFips:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: FIPS Service Endpoints Enabled
+    Default: AMORPHIC.CONFIG.ENABLEFIPS
+  pSSMAPICustomDomainName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.AI.CONFIG.APICUSTOMDOMAINNAME
+  pSSMSSLCertificateArn:
+    Description: Certificate Arn for AI
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.AI.CONFIG.ACMCERTIFICATEARN
+  pSSMDDBDeletionProtectionEnable:
+    Description: DeletionProtectionEnable Property for DB
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.DELETIONPROTECTIONENABLE
+  pSSMEnableProxy:
+    Description: Enable/Disable Squid Proxy
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: AMORPHIC.CONFIG.ENABLEPROXY
+  pSSMEnableVGW:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: "Enable the VpnGateway or not, yes/no"
+    Default: AMORPHIC.CONFIG.ENABLEVGW
+## Index with respect iam roles list (pSSMLambdaExecRoles)
+# 0 -> Workspace lambda execution role
+# 1 -> Chatbots lambda role
+# 2 -> Embedded chatbots lambda
+# 3 -> Filesync event pipe role
+# 4 -> AI state machine execution role
+Conditions:
+  cEnableWAF: !Equals
+    - !Ref pSSMEnableWAF
+    - "yes"
+  cIsBucketVersioningEnabled: !Equals
+    - !Ref pSSMEnableBucketVersioning
+    - "yes"
+  cIsFIPSEnabled: !Equals
+    - !Ref pSSMEnableFips
+    - "yes"
+  cEnableDeletionProtection: !Equals
+    - !Ref pSSMDDBDeletionProtectionEnable
+    - "yes"
+  cEnableSquidProxy: !And 
+      - !Equals 
+        - !Ref pSSMEnableProxy
+        - "yes"
+      - !Equals
+        - !Ref pSSMEnableVGW
+        - "no"
+Resources:
+  # API Gateway related resources for AI
+  rApiGatewayCustomDomain:
+    Type: AWS::ApiGateway::DomainName
+    Condition: cIsFIPSEnabled
+    Properties:
+      DomainName: !Ref pSSMAPICustomDomainName
+      EndpointConfiguration:
+        Types:
+          - EDGE
+      SecurityPolicy: TLS_1_2
+      CertificateArn: !Ref pSSMSSLCertificateArn
+      Tags:
+        - Key: Name
+          Value: !Join [ "-", [ !Ref pSSMProjectName, !Ref pSSMEnvironment, "AI", "APICustomDomain" ] ]
+        - Key: Environment
+          Value: !Ref pSSMEnvironment
+        - Key: Region
+          Value: !Ref 'AWS::Region'
+  # API Custom Domain mapping with API Gateway
+  rApiGatewaystagingBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Condition: cIsFIPSEnabled
+    Properties:
+      DomainName: !Ref rApiGatewayCustomDomain
+      RestApiId: !Ref rApiGateway
+      Stage: !Ref pSSMEnvironment
+  rApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-apigw-logs"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-ApiLogGroup"
+        - Key: "Environment"
+          Value: !Ref pSSMEnvironment
+        - Key: "Region"
+          Value: !Ref 'AWS::Region'
+  rApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      AlwaysDeploy: true
+      DefinitionUri:
+        Bucket: !Select [ 14, !Ref pSSMS3BucketsName ]
+        Key: !Sub "${pSSMArtifactsPrefixPlaceholder}/verticals/ai/api-def/ai-api-definition.yaml"
+      AccessLogSetting:
+        DestinationArn: !GetAtt rApiLogGroup.Arn
+        Format: !Ref pSSMAccessLogsFormat
+      MethodSettings:
+        - HttpMethod: "*"
+          LoggingLevel: INFO
+          MetricsEnabled: true
+          ResourcePath: "/*"
+      StageName: !Ref pSSMEnvironment
+  rAddCloudwatchRoleArnToApi:
+    DependsOn: rApiGateway
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn: !Ref pSSMCloudwatchRoleArn
+  rApiWebACLAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    Condition: cEnableWAF
+    Properties:
+      ResourceArn: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/restapis/${rApiGateway}/stages/${rApiGateway.Stage}"
+      WebACLArn: !Ref pSSMWebACLId
+  # Data bucket for AI
+  rAiDataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aidatabucket"
+      VersioningConfiguration:
+        Fn::If: [ cIsBucketVersioningEnabled, Status: Enabled, Ref: AWS::NoValue ]
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'aws:kms'
+              KMSMasterKeyID: !Select [ 0, !Ref pSSMKMSKeysList ]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: TRUE
+        BlockPublicPolicy: TRUE
+        IgnorePublicAcls: TRUE
+        RestrictPublicBuckets: TRUE
+      CorsConfiguration:
+        CorsRules:
+          - Id: AiDataBucketS3BucketCorsConfiguration
+            AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+            AllowedOrigins:
+              - '*'
+            MaxAge: '3000'
+      LoggingConfiguration:
+        DestinationBucketName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-logs"
+        LogFilePrefix: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-s3logs/bucketname=aiDataBucket/"
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteRule
+            Status: Enabled
+            ExpirationInDays: 1
+            Prefix: 'chat-sessions'
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-S3-AiDataBucket"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref "AWS::Region"
+  rAiDataBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref 'rAiDataBucket'
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Sid: DenyPublicReadACL
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action:
+          - s3:PutObject
+          - s3:PutObjectAcl
+          Resource: !Sub "arn:${AWS::Partition}:s3:::${rAiDataBucket}/*"
+          Condition:
+            StringEquals:
+              s3:x-amz-acl:
+              - public-read
+              - public-read-write
+              - authenticated-read
+        - Sid: DenyPublicReadGrant
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action:
+          - s3:PutObject
+          - s3:PutObjectAcl
+          Resource: !Sub "arn:${AWS::Partition}:s3:::${rAiDataBucket}/*"
+          Condition:
+            StringLike:
+              s3:x-amz-grant-read:
+              - "*http://acs.amazonaws.com/groups/global/AllUsers*"
+              - "*http://acs.amazonaws.com/groups/global/AuthenticatedUsers*"
+        - Sid: DenyPublicListACL
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action: s3:PutBucketAcl
+          Resource: !Sub "arn:${AWS::Partition}:s3:::${rAiDataBucket}"
+          Condition:
+            StringEquals:
+              s3:x-amz-acl:
+              - public-read
+              - public-read-write
+              - authenticated-read
+        - Sid: DenyPublicListGrant
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action: s3:PutBucketAcl
+          Resource: !Sub "arn:${AWS::Partition}:s3:::${rAiDataBucket}"
+          Condition:
+            StringLike:
+              s3:x-amz-grant-read:
+              - "*http://acs.amazonaws.com/groups/global/AllUsers*"
+              - "*http://acs.amazonaws.com/groups/global/AuthenticatedUsers*"
+        - Sid: AllowSSLRequestsOnly
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action: "*"
+          Resource:
+          - !Sub "arn:${AWS::Partition}:s3:::${rAiDataBucket}"
+          - !Sub "arn:${AWS::Partition}:s3:::${rAiDataBucket}/*"
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
+  # Misc bucket for AI
+  rAiMiscBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aimiscbucket"
+      VersioningConfiguration:
+        Fn::If: [ cIsBucketVersioningEnabled, Status: Enabled, Ref: AWS::NoValue ]
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'aws:kms'
+              KMSMasterKeyID: !Select [ 0, !Ref pSSMKMSKeysList ]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: TRUE
+        BlockPublicPolicy: TRUE
+        IgnorePublicAcls: TRUE
+        RestrictPublicBuckets: TRUE
+      CorsConfiguration:
+        CorsRules:
+          - Id: AiMiscBucketS3BucketCorsConfiguration
+            AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+            AllowedOrigins:
+              - '*'
+            MaxAge: '3000'
+      LoggingConfiguration:
+        DestinationBucketName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-logs"
+        LogFilePrefix: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-s3logs/bucketname=aiMiscBucket/"
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-S3-AiMiscBucket"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref "AWS::Region"
+  rAiMiscBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref 'rAiMiscBucket'
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Sid: DenyPublicReadACL
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action:
+          - s3:PutObject
+          - s3:PutObjectAcl
+          Resource: !Sub "arn:${AWS::Partition}:s3:::${rAiMiscBucket}/*"
+          Condition:
+            StringEquals:
+              s3:x-amz-acl:
+              - public-read
+              - public-read-write
+              - authenticated-read
+        - Sid: DenyPublicReadGrant
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action:
+          - s3:PutObject
+          - s3:PutObjectAcl
+          Resource: !Sub "arn:${AWS::Partition}:s3:::${rAiMiscBucket}/*"
+          Condition:
+            StringLike:
+              s3:x-amz-grant-read:
+              - "*http://acs.amazonaws.com/groups/global/AllUsers*"
+              - "*http://acs.amazonaws.com/groups/global/AuthenticatedUsers*"
+        - Sid: DenyPublicListACL
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action: s3:PutBucketAcl
+          Resource: !Sub "arn:${AWS::Partition}:s3:::${rAiMiscBucket}"
+          Condition:
+            StringEquals:
+              s3:x-amz-acl:
+              - public-read
+              - public-read-write
+              - authenticated-read
+        - Sid: DenyPublicListGrant
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action: s3:PutBucketAcl
+          Resource: !Sub "arn:${AWS::Partition}:s3:::${rAiMiscBucket}"
+          Condition:
+            StringLike:
+              s3:x-amz-grant-read:
+              - "*http://acs.amazonaws.com/groups/global/AllUsers*"
+              - "*http://acs.amazonaws.com/groups/global/AuthenticatedUsers*"
+        - Sid: AllowSSLRequestsOnly
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action: "*"
+          Resource:
+          - !Sub "arn:${AWS::Partition}:s3:::${rAiMiscBucket}"
+          - !Sub "arn:${AWS::Partition}:s3:::${rAiMiscBucket}/*"
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
+  ### SSM Parameters - DynamoDB Tables
+  rSSMUsersTable:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Users table name"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/usersTable"
+      Type: String
+      Value: !Ref rUsersTable
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-usersTable"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMGroupsTable:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Groups table name"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/groupsTable"
+      Type: String
+      Value: !Ref rGroupsTable
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-groupsTable"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  rSSMWorkspacesTable:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Workspaces table name"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/workspacesTable"
+      Type: String
+      Value: !Ref rWorkspacesTable
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-workspacesTable"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  rSSMWorkspacesDocumentsTable:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Workspaces Files table name"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/workspacesDocumentsTable"
+      Type: String
+      Value: !Ref rWorkspacesDocumentsTable
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-workspacesDocumentsTable"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMWorkspacesDocumentsTableWorkspaceIdIndex:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Workspaces files table workspace id index"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/workspacesDocumentsTable-workspaceId-gsi"
+      Type: String
+      Value: "workspacesDocumentsTable-workspaceId-gsi"
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-workspacesDocumentsTable-workspaceId-gsi"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMWorkspacesDocumentsTableRunIdIndex:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Workspaces files table textract job run id index"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/workspacesDocumentsTable-runId-gsi"
+      Type: String
+      Value: "workspacesDocumentsTable-runId-gsi"
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-workspacesDocumentsTable-runId-gsi"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMWorkspacesExecutionsTable:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Workspaces Executions table name"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/workspacesExecutionsTable"
+      Type: String
+      Value: !Ref rWorkspacesExecutionsTable
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-workspacesExecutionsTable"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMWorkspacesExecutionsTableWorkspaceIdIndex:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Workspaces Executions table workspace id index"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/workspacesExecutionsTable-workspaceId-gsi"
+      Type: String
+      Value: "workspacesExecutionsTable-workspaceId-gsi"
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-workspacesExecutionsTable-workspaceId-gsi"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMWorkspacesGroupsTable:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Workspaces Groups table name"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/workspacesGroupsTable"
+      Type: String
+      Value: !Ref rWorkspacesGroupsTable
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-workspacesGroupsTable"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMWorkspacesGroupsTableWorkspaceIdIndex:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB workspaces groups table workspace id index"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/workspacesGroupsTable-workspaceId-gsi"
+      Type: String
+      Value: "workspacesGroupsTable-workspaceId-gsi"
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-workspacesGroupsTable-workspaceId-gsi"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMModelsTable:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB models table name"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/modelsTable"
+      Type: String
+      Value: !Ref rModelsTable
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-modelsTable"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMModelsTableModelNameIndex:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB models table model name index"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/modelsTable-modelName-gsi"
+      Type: String
+      Value: "modelsTable-modelName-gsi"
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-modelsTable-modelName-gsi"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMChatbotsTable:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Chatbots table name"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/chatbotsTable"
+      Type: String
+      Value: !Ref rChatbotsTable
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-chatbotsTable"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMChatbotsTableChatbotNameIndex:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB chatbots table chatbot name index"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/chatbotsTable-chatbotName-gsi"
+      Type: String
+      Value: "chatbotsTable-chatbotName-gsi"
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-chatbotsTable-chatbotName-gsi"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMSessionsTable:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Sessions table name"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/sessionsTable"
+      Type: String
+      Value: !Ref rSessionsTable
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-sessionsTable"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMChatHistoryTable:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Chat history table name"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/chatHistoryTable"
+      Type: String
+      Value: !Ref rChatHistoryTable
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-chatHistoryTable"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMChatHistoryTableClientIdIndex:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB chat history table client id index"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/chatHistoryTable-clientId-gsi"
+      Type: String
+      Value: "chatHistoryTable-clientId-gsi"
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-chatHistoryTable-clientId-gsi"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMChatHistoryTableSessionIdMessageIdIndex:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB chat history table session id message id index"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/chatHistoryTable-sessionId-messageId-lsi"
+      Type: String
+      Value: "chatHistoryTable-sessionId-messageId-lsi"
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-chatHistoryTable-sessionId-messageId-lsi"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMAgentsTable:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Agents table name"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/agentsTable"
+      Type: String
+      Value: !Ref rAgentsTable
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-agentsTable"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMAgentsActionGroupsTable:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Agents Action Groups table name"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/agentsActionGroupsTable"
+      Type: String
+      Value: !Ref rAgentsActionGroupsTable
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-agentsActionGroupsTable"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMAgentsLibrariesTable:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Agents libraries table name"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/agentsLibrariesTable"
+      Type: String
+      Value: !Ref rAgentsLibrariesTable
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-agentsLibrariesTable"
+  rSSMSessionsTableSessionIdIndex:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB sessions table session id index"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/sessionsTable-sessionId-gsi"
+      Type: String
+      Value: "sessionsTable-sessionId-gsi"
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-sessionsTable-sessionId-gsi"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMSessionsTableConnectionIdIndex:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB sessions table connection id session id index"
+      Name: !Sub "/${pSSMProjectShortName}/${pSSMVerticalName}/${pSSMEnvironment}/dynamoDB/sessionsTable-connectionId-gsi"
+      Type: String
+      Value: "sessionsTable-connectionId-sessionId-gsi"
+      Tags:
+        Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-dynamoDB-sessionsTable-connectionId-gsi"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  ### DynamoDB Tables
+  rUsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "UserId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "UserId"
+          KeyType: "HASH"
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Select [8, !Ref pSSMKMSKeysList]
+        SSEType: KMS
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-usersTable"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+      - Key: BackupEnabled
+        Value: "yes"
+      DeletionProtectionEnabled: !If [cEnableDeletionProtection, true, !Ref "AWS::NoValue"]
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+  rGroupsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "GroupId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "GroupId"
+          KeyType: "HASH"
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Select [8, !Ref pSSMKMSKeysList]
+        SSEType: KMS
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-groupsTable"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+      - Key: BackupEnabled
+        Value: "yes"
+      DeletionProtectionEnabled: !If [cEnableDeletionProtection, true, !Ref "AWS::NoValue"]
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  rWorkspacesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "WorkspaceId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "WorkspaceId"
+          KeyType: "HASH"
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Select [8, !Ref pSSMKMSKeysList]
+        SSEType: KMS
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-workspacesTable"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+      - Key: BackupEnabled
+        Value: "yes"
+      DeletionProtectionEnabled: !If [cEnableDeletionProtection, true, !Ref "AWS::NoValue"]
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+  rWorkspacesDocumentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "DocumentId"
+          AttributeType: "S"
+        - AttributeName: "WorkspaceId"
+          AttributeType: "S"
+        - AttributeName: "RunId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "DocumentId"
+          KeyType: "HASH"
+        - AttributeName: "WorkspaceId"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        - IndexName: !GetAtt rSSMWorkspacesDocumentsTableWorkspaceIdIndex.Value
+          KeySchema:
+            - AttributeName: "WorkspaceId"
+              KeyType: "HASH"
+          Projection:
+            ProjectionType: "ALL"
+        - IndexName: !GetAtt rSSMWorkspacesDocumentsTableRunIdIndex.Value
+          KeySchema:
+            - AttributeName: "RunId"
+              KeyType: "HASH"
+          Projection:
+            NonKeyAttributes:
+              - "Message"
+              - "RunStatus"
+            ProjectionType: "INCLUDE"
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Select [8, !Ref pSSMKMSKeysList]
+        SSEType: KMS
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-workspacesDocumentsTable"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+      - Key: BackupEnabled
+        Value: "yes"
+      DeletionProtectionEnabled: !If [cEnableDeletionProtection, true, !Ref "AWS::NoValue"]
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+  rWorkspacesExecutionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "RunId"
+          AttributeType: "S"
+        - AttributeName: "WorkspaceId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "RunId"
+          KeyType: "HASH"
+      GlobalSecondaryIndexes:
+        - IndexName: !GetAtt rSSMWorkspacesExecutionsTableWorkspaceIdIndex.Value
+          KeySchema:
+            - AttributeName: "WorkspaceId"
+              KeyType: "HASH"
+          Projection:
+            ProjectionType: "ALL"
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Select [8, !Ref pSSMKMSKeysList]
+        SSEType: KMS
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-workspacesExecutionsTable"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+      - Key: BackupEnabled
+        Value: "yes"
+      DeletionProtectionEnabled: !If [cEnableDeletionProtection, true, !Ref "AWS::NoValue"]
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+  rWorkspacesGroupsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "GroupId"
+          AttributeType: "S"
+        - AttributeName: "WorkspaceId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "GroupId"
+          KeyType: "HASH"
+        - AttributeName: "WorkspaceId"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        - IndexName: !GetAtt rSSMWorkspacesGroupsTableWorkspaceIdIndex.Value
+          KeySchema:
+            - AttributeName: "WorkspaceId"
+              KeyType: "HASH"
+          Projection:
+            ProjectionType: "ALL"
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Select [8, !Ref pSSMKMSKeysList]
+        SSEType: KMS
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-workspacesGroupsTable"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+      - Key: BackupEnabled
+        Value: "yes"
+      DeletionProtectionEnabled: !If [cEnableDeletionProtection, true, !Ref "AWS::NoValue"]
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+  rModelsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "ModelId"
+          AttributeType: "S"
+        - AttributeName: "ModelName"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "ModelId"
+          KeyType: "HASH"
+      GlobalSecondaryIndexes:
+        - IndexName: !GetAtt rSSMModelsTableModelNameIndex.Value
+          KeySchema:
+            - AttributeName: "ModelName"
+              KeyType: "HASH"
+          Projection:
+            ProjectionType: "ALL"
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Select [8, !Ref pSSMKMSKeysList]
+        SSEType: KMS
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-modelsTable"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+      - Key: BackupEnabled
+        Value: "yes"
+      DeletionProtectionEnabled: !If [cEnableDeletionProtection, true, !Ref "AWS::NoValue"]
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+  rChatbotsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "ChatbotId"
+          AttributeType: "S"
+        - AttributeName: "ChatbotName"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "ChatbotId"
+          KeyType: "HASH"
+      GlobalSecondaryIndexes:
+        - IndexName: !GetAtt rSSMChatbotsTableChatbotNameIndex.Value
+          KeySchema:
+            - AttributeName: "ChatbotName"
+              KeyType: "HASH"
+          Projection:
+            ProjectionType: "ALL"
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Select [8, !Ref pSSMKMSKeysList]
+        SSEType: KMS
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-chatbotsTable"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+      - Key: BackupEnabled
+        Value: "yes"
+      DeletionProtectionEnabled: !If [cEnableDeletionProtection, true, !Ref "AWS::NoValue"]
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+  rSessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "UserId"
+          AttributeType: "S"
+        - AttributeName: "SessionId"
+          AttributeType: "S"
+        - AttributeName: "ConnectionId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "UserId"
+          KeyType: "HASH"
+        - AttributeName: "SessionId"
+          KeyType: "RANGE"
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Select [8, !Ref pSSMKMSKeysList]
+        SSEType: KMS
+      TimeToLiveSpecification:
+        AttributeName: ExpirationTime
+        Enabled: True
+      GlobalSecondaryIndexes:
+        - IndexName: !GetAtt rSSMSessionsTableSessionIdIndex.Value
+          KeySchema:
+            - AttributeName: "SessionId"
+              KeyType: "HASH"
+          Projection:
+            NonKeyAttributes:
+              - "UserId"
+            ProjectionType: INCLUDE
+        - IndexName: !GetAtt rSSMSessionsTableConnectionIdIndex.Value
+          KeySchema:
+            - AttributeName: "ConnectionId"
+              KeyType: "HASH"
+          Projection:
+            NonKeyAttributes:
+              - "SessionId"
+              - "UserId"
+            ProjectionType: INCLUDE
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-sessionsTable"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+      - Key: BackupEnabled
+        Value: "yes"
+      DeletionProtectionEnabled: !If [cEnableDeletionProtection, true, !Ref "AWS::NoValue"]
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+  rChatHistoryTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "SessionId"
+          AttributeType: "S"
+        - AttributeName: "MessageTime"
+          AttributeType: "S"
+        - AttributeName: "ClientId"
+          AttributeType: "S"
+        - AttributeName: "MessageId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "SessionId"
+          KeyType: "HASH"
+        - AttributeName: "MessageTime"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        - IndexName: !GetAtt rSSMChatHistoryTableClientIdIndex.Value
+          KeySchema:
+            - AttributeName: "ClientId"
+              KeyType: "HASH"
+          Projection:
+            ProjectionType: "ALL"
+      LocalSecondaryIndexes:
+        - IndexName: !GetAtt rSSMChatHistoryTableSessionIdMessageIdIndex.Value
+          KeySchema:
+            - AttributeName: "SessionId"
+              KeyType: "HASH"
+            - AttributeName: "MessageId"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Select [8, !Ref pSSMKMSKeysList]
+        SSEType: KMS
+      TimeToLiveSpecification:
+        AttributeName: ExpirationTime
+        Enabled: True
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-chatHistoryTable"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+      - Key: BackupEnabled
+        Value: "yes"
+      DeletionProtectionEnabled: !If [cEnableDeletionProtection, true, !Ref "AWS::NoValue"]
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+  rAgentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "AgentId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "AgentId"
+          KeyType: "HASH"
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Select [8, !Ref pSSMKMSKeysList]
+        SSEType: KMS
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-agentsTable"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+      - Key: BackupEnabled
+        Value: "yes"
+      DeletionProtectionEnabled: !If [cEnableDeletionProtection, true, !Ref "AWS::NoValue"]
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+  rAgentsActionGroupsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "ActionGroupId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "ActionGroupId"
+          KeyType: "HASH"
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Select [8, !Ref pSSMKMSKeysList]
+        SSEType: KMS
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-agentsActionGroupsTable"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+      - Key: BackupEnabled
+        Value: "yes"
+      DeletionProtectionEnabled: !If [cEnableDeletionProtection, true, !Ref "AWS::NoValue"]
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+  rAgentsLibrariesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "LibraryId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "LibraryId"
+          KeyType: "HASH"
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !Select [8, !Ref pSSMKMSKeysList]
+        SSEType: KMS
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-agentsLibrariesTable"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+      - Key: BackupEnabled
+        Value: "yes"
+      DeletionProtectionEnabled: !If [cEnableDeletionProtection, true, !Ref "AWS::NoValue"]
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  # Pre-baked IAM Policy for action group lambdas
+  rActionGroupLambdaPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Join ["-",[!Ref pSSMProjectShortName, "ActionGroupLambdaPolicy"]]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource:
+              - !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*"
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+            Resource:
+              - !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*"
+
+  ### LAMBDAS
+  # Custom resource Lambda for enabling vector extension in AuroraDB
+  # Being deprecated as part of 2.6 as this is being moved to Amorphic API repo
+  # This lambda can be deleted once all customers have upgraded to this version
+  rEnableVectorCustomResourceLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${pSSMAILambdaECRRepositoryUri}:ai-${pSSMAILambdaECRTag}"
+      ImageConfig:
+        Command: [ "aurora-vector-setup/auroraVectorSetup.lambda_handler" ]
+        WorkingDirectory: !Sub "${pWorkingDirectory}aurora-vector-setup"
+      FunctionName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-enableVectorCustomResource"
+      Role: !Select [0, !Ref pSSMLambdaExecRoles]
+      MemorySize: 128
+      Timeout: 30
+      VpcConfig:
+        SubnetIds:
+          - !Ref pSSMVerticalsPrivateSubnet1ID
+          - !Ref pSSMVerticalsPrivateSubnet2ID
+        SecurityGroupIds:
+          - !Ref pSSMLambdaSG
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-EnableVectorCustomResourceLambda"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rUsersLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${pSSMAILambdaECRRepositoryUri}:ai-${pSSMAILambdaECRTag}"
+      ImageConfig:
+        Command: [ "users/users.lambda_handler" ]
+        WorkingDirectory: !Sub "${pWorkingDirectory}users"
+      FunctionName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-users"
+      Role: !Select [0, !Ref pSSMLambdaExecRoles]
+      MemorySize: 128
+      Timeout: 30
+      VpcConfig:
+        SubnetIds:
+          - !Ref pSSMVerticalsPrivateSubnet1ID
+          - !Ref pSSMVerticalsPrivateSubnet2ID
+        SecurityGroupIds:
+          - !Ref pSSMLambdaSG
+      Environment:
+        Variables:
+          amorphicAccessTokensLambdaArn: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-accessTokens"
+          amorphicDWHTenantsLambdaArn: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-dwhTenants"
+          amorphicDomainsLambdaArn: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-domains"
+          amorphicGetUserLambdaArn: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-getUser:${pSSMEnvironment}"
+          enableMultiTenancy: !Ref pSSMEnableMultiTenancy
+          sesAwsRegion: !Ref pSSMSESAWSRegion
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-UsersLambda"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rAppManagementLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${pSSMAILambdaECRRepositoryUri}:ai-${pSSMAILambdaECRTag}"
+      ImageConfig:
+        Command: [ "app-management/appManagement.lambda_handler" ]
+        WorkingDirectory: !Sub "${pWorkingDirectory}app-management"
+      FunctionName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-appManagement"
+      Role: !Select [0, !Ref pSSMLambdaExecRoles]
+      MemorySize: 256
+      Timeout: 30
+      VpcConfig:
+        SubnetIds:
+          - !Ref pSSMVerticalsPrivateSubnet1ID
+          - !Ref pSSMVerticalsPrivateSubnet2ID
+        SecurityGroupIds:
+          - !Ref pSSMLambdaSG
+      Environment:
+        Variables:
+          sesAwsRegion: !Ref pSSMSESAWSRegion
+          projectName: !Ref pSSMProjectName
+          ragEnginesKey: !Ref pSSMRagEngines
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-AppManagementLambda"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  # agents lambdas
+  rTextSummarizationLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${pSSMAILambdaECRRepositoryUri}:ai-${pSSMAILambdaECRTag}"
+      ImageConfig:
+        Command: [ "text-summarization/textSummarization.lambda_handler" ]
+        WorkingDirectory: !Sub "${pWorkingDirectory}text-summarization"
+      FunctionName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-textSummarization"
+      Role: !Select [0, !Ref pSSMLambdaExecRoles]
+      MemorySize: 5120
+      Timeout: 900
+      VpcConfig:
+        SubnetIds:
+          - !Ref pSSMVerticalsPrivateSubnet1ID
+          - !Ref pSSMVerticalsPrivateSubnet2ID
+        SecurityGroupIds:
+          - !Ref pSSMLambdaSG
+      Environment:
+        Variables:
+          aiDataBucket: !Ref rAiDataBucket
+          TRANSFORMERS_CACHE: "/tmp/transformerscache"
+          summarizationModels: !Ref pSSMSummarizationModels
+          DLZBucketName: !Select [3, !Ref pSSMS3BucketsName]
+          amorphicDatasetFilesLambdaArn: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-datasetFiles"
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-TextSummarizationLambda"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  # Visualizations internal agent lambdas
+  rVisualizationsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${pSSMAILambdaECRRepositoryUri}:ai-${pSSMAILambdaECRTag}"
+      ImageConfig:
+        Command: [ "visualizations/visualizations.lambda_handler" ]
+        WorkingDirectory: !Sub "${pWorkingDirectory}visualizations"
+      FunctionName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-visualizations"
+      Role: !Select [0, !Ref pSSMLambdaExecRoles]
+      MemorySize: 256
+      Timeout: 180
+      VpcConfig:
+        SubnetIds:
+          - !Ref pSSMVerticalsPrivateSubnet1ID
+          - !Ref pSSMVerticalsPrivateSubnet2ID
+        SecurityGroupIds:
+          - !Ref pSSMLambdaSG
+      Environment:
+        Variables:
+          sessionFilesBucketName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aidatabucket"
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-VisualizationsLambda"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  rWorkspacesLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${pSSMAILambdaECRRepositoryUri}:ai-${pSSMAILambdaECRTag}"
+      ImageConfig:
+        Command: [ "workspaces-lambda/workspaces.lambda_handler" ]
+        WorkingDirectory: !Sub "${pWorkingDirectory}workspaces-lambda"
+      FunctionName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-workspaces"
+      Role: !Select [0, !Ref pSSMLambdaExecRoles]
+      MemorySize: 5120
+      Timeout: 900
+      VpcConfig:
+        SubnetIds:
+          # Workspace lambda uses beautifulsoup to scrap websites in the open internet.
+          # So we are suing Squid private subnet to avoid squid from intercepting the
+          # traffic from the lambda
+          - !If [cEnableSquidProxy, !Ref pSSMSquidPrivateSubnetID, !Ref pSSMVerticalsPrivateSubnet1ID]
+        SecurityGroupIds:
+          - !Ref pSSMLambdaSG
+      Environment:
+        Variables:
+          aiDataBucket: !Ref rAiDataBucket
+          executeInputLambdaStateMachineArn: !Ref rExecuteInputLambdaStateMachine
+          workspaceWebsiteContentScrapingStateMachineArn: !Ref rWorkspaceWebsiteContentScrapingStateMachine
+          LZBucketName: !Select [5, !Ref pSSMS3BucketsName]
+          DLZBucketName: !Select [3, !Ref pSSMS3BucketsName]
+          sesEmailFrom: !Ref pSSMSESEmailFrom
+          amorphicDatasetOperationsLambdaArn: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-datasetOperations"
+          amorphicDatasetFilesLambdaArn: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-datasetFiles"
+          amorphicGetPresignedURLLambdaArn: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-getPreSignedURL"
+          workspacesLambdaArn: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-workspaces"
+          RAGEngineClusterArn: !Ref pSSMDBRAGEngineClusterArn
+          DLZKMSKeyArn: !Join ["/", [!Sub "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key", !Select [0, !Ref pSSMKMSKeysList]] ]
+          auroraServiceUserAuthArn: !Ref pSSMRAGServiceUserSecretArn
+          BedrockKMSKeyArn:  !Join ["/", [!Sub "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key", !Select [16, !Ref pSSMKMSKeysList]] ]
+          PYTHONPATH: !Sub "${pWorkingDirectory}workspaces-lambda"
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-Workspaces"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSyncFilesLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${pSSMAILambdaECRRepositoryUri}:ai-${pSSMAILambdaECRTag}"
+      ImageConfig:
+        Command: [ "sync-files/syncFiles.lambda_handler" ]
+        WorkingDirectory: !Sub "${pWorkingDirectory}sync-files"
+      FunctionName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-syncFiles"
+      Role: !Select [0, !Ref pSSMLambdaExecRoles]
+      MemorySize: 256
+      Timeout: 900
+      VpcConfig:
+        SubnetIds:
+          - !Ref pSSMVerticalsPrivateSubnet1ID
+          - !Ref pSSMVerticalsPrivateSubnet2ID
+        SecurityGroupIds:
+          - !Ref pSSMLambdaSG
+      Environment:
+        Variables:
+          userPoolId: !Ref pSSMUserPoolId
+          awsRegion: !Ref 'AWS::Region'
+          executeInputLambdaStateMachineArn: !Ref rExecuteInputLambdaStateMachine
+          workspacesLambdaArn: !Ref rWorkspacesLambda
+          amorphicDatasetOperationsLambdaArn: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-datasetOperations"
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-SyncFiles"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  # Resource auth users lambda
+  rResourceAuthUsersLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${pSSMAILambdaECRRepositoryUri}:ai-${pSSMAILambdaECRTag}"
+      ImageConfig:
+        Command: [ "resource-auth-users/resourceAuthUsers.lambda_handler" ]
+        WorkingDirectory: !Sub "${pWorkingDirectory}resource-auth-users"
+      FunctionName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-resourceAuthUsers"
+      Role: !Select [0, !Ref pSSMLambdaExecRoles]
+      MemorySize: 512
+      Timeout: 30
+      Environment:
+        Variables:
+          embeddedChatbotsLambdaRole: !Select [2, !Ref pSSMLambdaExecRoles]
+      VpcConfig:
+        SubnetIds:
+          - !Ref pSSMVerticalsPrivateSubnet1ID
+          - !Ref pSSMVerticalsPrivateSubnet2ID
+        SecurityGroupIds:
+          - !Ref pSSMLambdaSG
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-ResourceAuthUsers"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  # Chatbots lambda
+  rChatbotsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${pSSMAILambdaECRRepositoryUri}:ai-${pSSMAILambdaECRTag}"
+      ImageConfig:
+        Command: [ "chatbots/chatbots.lambda_handler" ]
+        WorkingDirectory: !Sub "${pWorkingDirectory}chatbots"
+      FunctionName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-chatbots"
+      Role: !Select [1, !Ref pSSMLambdaExecRoles]
+      MemorySize: 1024
+      Timeout: 900
+      Environment:
+        Variables:
+          embeddedChatbotsLambdaRole: !Select [2, !Ref pSSMLambdaExecRoles]
+          privateSubnet1: !Ref pSSMVerticalsPrivateSubnet1ID
+          privateSubnet2: !Ref pSSMVerticalsPrivateSubnet2ID
+          lambdaSecurityGroup: !Ref pSSMLambdaSG
+          RAGDatabase: !Ref pSSMRAGDBName
+      VpcConfig:
+        SubnetIds:
+          - !Ref pSSMVerticalsPrivateSubnet1ID
+          - !Ref pSSMVerticalsPrivateSubnet2ID
+        SecurityGroupIds:
+          - !Ref pSSMLambdaSG
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-Chatbots"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  rEmbeddedChatbotsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${pSSMAILambdaECRRepositoryUri}:ai-${pSSMAILambdaECRTag}"
+      ImageConfig:
+        Command: [ "embedded-chatbots/embeddedChatbots.lambda_handler" ]
+        WorkingDirectory: !Sub "${pWorkingDirectory}embedded-chatbots"
+      FunctionName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-embeddedChatbots"
+      Role: !Select [2, !Ref pSSMLambdaExecRoles]
+      MemorySize: 1024
+      Timeout: 900
+      VpcConfig:
+        SubnetIds:
+          - !Ref pSSMVerticalsPrivateSubnet1ID
+          - !Ref pSSMVerticalsPrivateSubnet2ID
+        SecurityGroupIds:
+          - !Ref pSSMLambdaSG
+      Environment:
+        Variables:
+          amorphicDatasetFilesLambdaArn: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-datasetFiles"
+          webSocketAPIEndpoint: !GetAtt rChatbotWebSocketAPI.ApiEndpoint
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-Embedded-Chatbots"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  # Chat lambda
+  rChatLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${pSSMAILambdaECRRepositoryUri}:ai-${pSSMAILambdaECRTag}"
+      ImageConfig:
+        Command: [ "chat/chat.lambda_handler" ]
+        WorkingDirectory: !Sub "${pWorkingDirectory}chat"
+      FunctionName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-chat"
+      Role: !Select [0, !Ref pSSMLambdaExecRoles]
+      MemorySize: 4096
+      Timeout: 900
+      VpcConfig:
+        SubnetIds:
+          - !Ref pSSMVerticalsPrivateSubnet1ID
+          - !Ref pSSMVerticalsPrivateSubnet2ID
+        SecurityGroupIds:
+          - !Ref pSSMLambdaSG
+      Environment:
+        Variables:
+          LZBucketName: !Select [5, !Ref pSSMS3BucketsName]
+          DLZBucketName: !Select [3, !Ref pSSMS3BucketsName]
+          sessionFilesBucketName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aidatabucket"
+          sesEmailFrom: !Ref pSSMSESEmailFrom
+          amorphicDatasetOperationsLambdaArn: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-datasetOperations"
+          summarizationLambdaArn: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-textSummarization"
+          amorphicDatasetFilesLambdaArn: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-datasetFiles"
+          webSocketAPIEndpoint: !GetAtt rChatWebSocketAPI.ApiEndpoint
+      Events:
+        sessionFileUploadEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref rAiDataBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: 'chat-sessions'
+        sessionFileDeleteEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref rAiDataBucket
+            Events: s3:LifecycleExpiration:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: 'chat-sessions'
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-Chat"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  rModelsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${pSSMAILambdaECRRepositoryUri}:ai-${pSSMAILambdaECRTag}"
+      ImageConfig:
+        Command: [ "models/models.lambda_handler" ]
+        WorkingDirectory: !Sub "${pWorkingDirectory}models"
+      FunctionName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-models"
+      Role: !Select [0, !Ref pSSMLambdaExecRoles]
+      MemorySize: 512
+      Timeout: 30
+      Events:
+        syncModelsMetadata:
+          Type: Schedule
+          Properties:
+            Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-SyncModelsMetadata"
+            Description: Event rule schedule to sync models metadata.
+            Schedule: cron(0 0/12 ? * * *)
+            Input: '{"Operation": "sync-models-metadata"}'
+      Environment:
+        Variables:
+          aiDataBucketName: !Ref rAiDataBucket
+          customModelRoleArn: !Select [5, !Ref pSSMLambdaExecRoles]
+          BedrockKMSKeyArn: !Join ["/", [!Sub "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key", !Select [16, !Ref pSSMKMSKeysList]] ]
+      VpcConfig:
+        SubnetIds:
+          - !Ref pSSMVerticalsPrivateSubnet1ID
+          - !Ref pSSMVerticalsPrivateSubnet2ID
+        SecurityGroupIds:
+          - !Ref pSSMLambdaSG
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-Models"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  rAgentsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${pSSMAILambdaECRRepositoryUri}:ai-${pSSMAILambdaECRTag}"
+      ImageConfig:
+        Command: [ "agents-lambda/agents.lambda_handler" ]
+        WorkingDirectory: !Sub "${pWorkingDirectory}agents-lambda"
+      FunctionName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-agents"
+      Role: !Select [0, !Ref pSSMLambdaExecRoles]
+      MemorySize: 512
+      Timeout: 900
+      Environment:
+        Variables:
+          aiMiscBucketName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${AWS::Region}-${AWS::AccountId}-${pSSMEnvironment}-aimiscbucket"
+          agentsRoleArn: !Select [6, !Ref pSSMLambdaExecRoles]
+          actionGroupLambdaPolicyArn: !Ref rActionGroupLambdaPolicy
+          webSocketAPIEndpoint: !GetAtt rAgentWebSocketAPI.ApiEndpoint
+          BedrockKMSKeyArn: !Join ["/", [!Sub "arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key", !Select [16, !Ref pSSMKMSKeysList]] ]
+          PYTHONPATH: !Sub "${pWorkingDirectory}agents-lambda"
+          datasetOperationsActionGroupLambdaArn: !GetAtt rDatasetOperationsActionGroupLambda.Arn
+          etlOperationsActionGroupLambdaArn: !GetAtt rEtlOperationsActionGroupLambda.Arn
+      VpcConfig:
+        SubnetIds:
+          - !Ref pSSMVerticalsPrivateSubnet1ID
+          - !Ref pSSMVerticalsPrivateSubnet2ID
+        SecurityGroupIds:
+          - !Ref pSSMLambdaSG
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-Agents"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  # PRE-BAKED ACTION GROUP LAMBDAS
+
+  # This lambda will be invoked by agents to perform operations on Amorphic datasets based upon the user request
+  # User requests include list datasets, get dataset details, list files, create a dataset, run datatprofiling job, etc
+  rDatasetOperationsActionGroupLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${pSSMAILambdaECRRepositoryUri}:ai-${pSSMAILambdaECRTag}"
+      ImageConfig:
+        Command: [ "agents-lambda/pre-baked-action-groups/dataset-operations/lambda/datasetOperations.lambda_handler" ]
+        WorkingDirectory: !Sub "${pWorkingDirectory}agents-lambda/pre-baked-action-groups/dataset-operations/lambda"
+      FunctionName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-agents-datasetOperations"
+      Role: !Select [7, !Ref pSSMLambdaExecRoles]
+      MemorySize: 5120
+      Timeout: 900
+      VpcConfig:
+        SubnetIds:
+          - !Ref pSSMVerticalsPrivateSubnet1ID
+          - !Ref pSSMVerticalsPrivateSubnet2ID
+        SecurityGroupIds:
+          - !Ref pSSMLambdaSG
+      Environment:
+        Variables:
+          PYTHONPATH: !Sub "${pWorkingDirectory}agents-lambda/pre-baked-action-groups/dataset-operations/lambda"
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-agents-DatasetOperationsLambda"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  rDatasetOperationsActionGroupLambdaPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !Ref rDatasetOperationsActionGroupLambda
+      Principal: "bedrock.amazonaws.com"
+      Action: "lambda:InvokeFunction"
+      SourceArn: !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:agent/*"
+
+  # This lambda will be invoked by agents to perform Amorphic etl operations based upon the user request
+  # User requests include list jobs, job executions, run a job, etc
+  rEtlOperationsActionGroupLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Sub "${pSSMAILambdaECRRepositoryUri}:ai-${pSSMAILambdaECRTag}"
+      ImageConfig:
+        Command: [ "agents-lambda/pre-baked-action-groups/etl-operations/lambda/etlOperations.lambda_handler" ]
+        WorkingDirectory: !Sub "${pWorkingDirectory}agents-lambda/pre-baked-action-groups/etl-operations/lambda"
+      FunctionName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-agents-etlOperations"
+      Role: !Select [7, !Ref pSSMLambdaExecRoles]
+      MemorySize: 5120
+      Timeout: 900
+      VpcConfig:
+        SubnetIds:
+          - !Ref pSSMVerticalsPrivateSubnet1ID
+          - !Ref pSSMVerticalsPrivateSubnet2ID
+        SecurityGroupIds:
+          - !Ref pSSMLambdaSG
+      Environment:
+        Variables:
+          PYTHONPATH: !Sub "${pWorkingDirectory}agents-lambda/pre-baked-action-groups/etl-operations/lambda"
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-agents-EtlOperationsLambda"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  rEtlOperationsActionGroupLambdaPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !Ref rEtlOperationsActionGroupLambda
+      Principal: "bedrock.amazonaws.com"
+      Action: "lambda:InvokeFunction"
+      SourceArn: !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:agent/*"
+
+  ### STEP FUNCTIONS
+  rExecuteInputLambdaStateMachine:
+    Type: "AWS::StepFunctions::StateMachine"
+    Properties:
+      StateMachineName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-ExecuteInputLambdaStateMachine"
+      LoggingConfiguration:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt rExecuteInputLambdaStateMachineLogGroup.Arn
+        IncludeExecutionData: True
+        Level: ALL
+      DefinitionString:
+        !Sub
+        |-
+        {
+          "Comment": "State machine to continue executing the input lambda until the condition is met",
+          "StartAt": "Operation?",
+          "States": {
+            "Operation?": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.WaitTimeInSec",
+                  "IsPresent": true,
+                  "Next": "WaitState"
+                },
+                {
+                  "And": [
+                    {
+                      "Variable": "$.Operation",
+                      "IsPresent": true
+                    },
+                    {
+                      "Variable": "$.Operation",
+                      "StringEquals": "Complete"
+                    }
+                  ],
+                  "Next": "Success"
+                },
+                {
+                  "And": [
+                    {
+                      "Variable": "$.Operation",
+                      "IsPresent": true
+                    },
+                    {
+                      "Not": {
+                        "Variable": "$.Operation",
+                        "StringEquals": "Complete"
+                      }
+                    }
+                  ],
+                  "Next": "Lambda"
+                },
+                {
+                  "Not": {
+                    "Variable": "$.Operation",
+                    "IsPresent": true
+                  },
+                  "Next": "Fail"
+                }
+              ]
+            },
+            "Fail": {
+              "Type": "Fail"
+            },
+            "Success": {
+              "Type": "Succeed"
+            },
+            "Lambda": {
+              "Type": "Task",
+              "Resource": "arn:${AWS::Partition}:states:::lambda:invoke",
+              "OutputPath": "$.Payload",
+              "Parameters": {
+                "Payload.$": "$",
+                "FunctionName.$": "$.lambdaArn"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "MaxAttempts": 6,
+                  "BackoffRate": 2
+                }
+              ],
+              "Next": "Operation?"
+              },
+            "WaitState": {
+                "Type": "Wait",
+                "SecondsPath": "$.WaitTimeInSec",
+                "Next": "Lambda"
+            }
+          }
+        }
+      RoleArn: !Select [4, !Ref pSSMLambdaExecRoles]
+      Tags:
+        - Key: Name
+          Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-ExecuteInputLambdaStateMachine"
+        - Key: Environment
+          Value: !Ref pSSMEnvironment
+        - Key: Region
+          Value: !Ref 'AWS::Region'
+
+  rWorkspaceWebsiteContentScrapingStateMachine:
+    Type: "AWS::StepFunctions::StateMachine"
+    Properties:
+      StateMachineName: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-WorkspaceWebsiteContentScrapingStateMachine"
+      LoggingConfiguration:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn:  !GetAtt rWorkspaceWebsiteContentScrapingStateMachineLogGroup.Arn
+        IncludeExecutionData: True
+        Level: ALL
+      DefinitionString:
+        !Sub
+          - |-
+            {
+              "Comment": "Step function for crawling websites and storing extracted data in a dataset",
+              "StartAt": "CrawlAndStoreExtractedData",
+              "States": {
+                "CrawlAndStoreExtractedData": {
+                  "Type": "Map",
+                  "ItemsPath": "$.Websites",
+                  "Parameters": {
+                    "URL.$": "$$.Map.Item.Value",
+                    "Operation.$": "$.Operation",
+                    "WorkspaceId.$": "$.WorkspaceId",
+                    "UserId.$": "$.UserId",
+                    "Domain.$": "$.Domain",
+                    "DatasetName.$": "$.DatasetName",
+                    "WebCrawlId.$": "$.WebCrawlId"
+                  },
+                  "ResultPath": "$.ProcessedURLs",
+                  "MaxConcurrency": 500,
+                  "ToleratedFailurePercentage": 100,
+                  "Catch": [
+                    {
+                      "ErrorEquals": [
+                        "States.ALL"
+                      ],
+                      "Next": "FailureState"
+                    }
+                  ],
+                  "Iterator": {
+                    "StartAt": "LambdaStep",
+                    "States": {
+                      "LambdaStep": {
+                        "Type": "Task",
+                        "Resource": "${rWorkspacesLambdaArn}",
+                        "End": true,
+                        "Catch": [
+                          {
+                            "ErrorEquals": [
+                              "States.ALL"
+                            ],
+                            "Next": "LambdaError"
+                          }
+                        ],
+                        "Retry": [
+                          {
+                            "ErrorEquals": [
+                              "Lambda.ServiceException",
+                              "Lambda.AWSLambdaException",
+                              "Lambda.SdkClientException"
+                            ],
+                            "IntervalSeconds": 2,
+                            "MaxAttempts": 6,
+                            "BackoffRate": 2
+                          }
+                        ]
+                      },
+                      "LambdaError": {
+                        "Type": "Fail"
+                      }
+                    }
+                  },
+                  "Next": "CheckWebCrawlingId"
+                },
+                "CheckWebCrawlingId": {
+                  "Type": "Choice",
+                  "Choices": [
+                    {
+                      "Variable": "$.WebCrawlId",
+                      "IsNull": false,
+                      "Next": "UpdateCrawlingJobMetadata"
+                    }
+                  ],
+                  "Default": "SuccessState"
+                },
+                "UpdateCrawlingJobMetadata": {
+                  "Type": "Task",
+                  "Resource": "${rWorkspacesLambdaArn}",
+                  "Parameters": {
+                    "Operation": "update_crawling_job_metadata",
+                    "ProcessedURLs.$": "$.ProcessedURLs",
+                    "WorkspaceId.$": "$.WorkspaceId",
+                    "WebCrawlId.$": "$.WebCrawlId",
+                    "UserId.$": "$.UserId"
+                  },
+                  "Catch": [
+                    {
+                      "ErrorEquals": ["States.ALL"],
+                      "Next": "FailureState"
+                    }
+                  ],
+                  "Next": "SuccessState"
+                },
+                "SuccessState": {
+                  "Type": "Succeed"
+                },
+                "FailureState": {
+                  "Type": "Fail"
+                }
+              }
+            }
+          - {
+              rWorkspacesLambdaArn: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-workspaces",
+            }
+      RoleArn: !Select [4, !Ref pSSMLambdaExecRoles]
+      Tags:
+      - Key: Name
+        Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-WorkspaceWebsiteContentScrapingStateMachine"
+      - Key: Environment
+        Value: !Ref pSSMEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+
+  ### Step Function Log groups
+  # ExecuteInputLambdaStateMachineLogGroup Log Group
+  rExecuteInputLambdaStateMachineLogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: !Sub "/aws/vendedlogs/statemachines/${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-ExecuteInputLambdaStateMachine"
+
+  # ExecuteInputLambdaStateMachineLogGroup Log Group
+  rWorkspaceWebsiteContentScrapingStateMachineLogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: !Sub "/aws/vendedlogs/statemachines/${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-WorkspaceWebsiteContentScrapingStateMachine"
+
+  # EventBridgeRule lambda trigger policies
+  rEventBridgeWorkspacesLambdaTriggerPolicy:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !Ref rWorkspacesLambda
+      Principal: events.amazonaws.com
+      Action: lambda:InvokeFunction
+      SourceArn: !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/ai-*"
+
+  # EVENT BRIDGE PIPES
+
+  # File Sync Pipe
+  rFileSyncEventPipe:
+    Type: AWS::Pipes::Pipe
+    Properties:
+      Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-FileSyncEventPipe"
+      RoleArn: !Select [3, !Ref pSSMLambdaExecRoles]
+      Source: !Ref pSSMFileLoadStatusTableStreamArn
+      SourceParameters:
+        FilterCriteria:
+          Filters:
+            - Pattern: '{"dynamodb": {"OldImage": {"LoadStatus": {"S": ["completed", "processing"]}}}}'
+        DynamoDBStreamParameters:
+          StartingPosition: LATEST
+          BatchSize: 20
+          MaximumBatchingWindowInSeconds: 30
+      Target: !GetAtt rSyncFilesLambda.Arn
+
+  # Generic SSM parameters
+  rSSMApiGateway:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "AI Api Gateway"
+      Name: "AMORPHIC.AI.API.APIGATEWAY"
+      Type: String
+      Value: !Ref rApiGateway
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-AMORPHIC.AI.API.APIGATEWAY"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMChatWebSocketAPI:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "AI Chat WebSocket API ID"
+      Name: "AMORPHIC.AI.API.CHATWSID"
+      Type: String
+      Value: !Ref rChatWebSocketAPI
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-AMORPHIC.AI.API.CHATWSID"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMChatbotWebSocketAPI:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "AI Chatbot WebSocket API ID"
+      Name: "AMORPHIC.AI.API.CHATBOTWSID"
+      Type: String
+      Value: !Ref rChatbotWebSocketAPI
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-AMORPHIC.AI.API.CHATBOTWSID"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+  rSSMAgentWebSocketAPI:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "AI Agent WebSocket API ID"
+      Name: "AMORPHIC.AI.API.AGENTWSID"
+      Type: String
+      Value: !Ref rAgentWebSocketAPI
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-AMORPHIC.AI.API.AGENTWSID"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref 'AWS::Region'
+
+  # Chat Web Socket API Related Resources
+  # Web Socket API
+  rChatWebSocketAPI:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      ApiKeySelectionExpression: $request.header.x-api-key
+      Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-chatwebsocketapi"
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: $request.body.Route
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-chatwebsocketapi"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref "AWS::Region"
+      Version: !Ref pSSMVersion
+  # Lambda intergration for the API calls
+  rChatWebSocketLambdaIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref rChatWebSocketAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${rChatLambda.Arn}/invocations'
+      CredentialsArn: !Ref pSSMAPIGWRoleArn
+  # Lambda Authorizer for the $connect route
+  rChatWebSocketLambdaAuthorizer:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      ApiId: !Ref rChatWebSocketAPI
+      AuthorizerCredentialsArn: !Ref pSSMAPIGWRoleArn
+      AuthorizerType: REQUEST
+      AuthorizerUri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-authorizerLambda:${pSSMEnvironment}/invocations'
+      IdentitySource:
+        - route.request.querystring.Authorization
+      Name: LambdaAuthorizer
+  # WS route to send messages
+  rChatWebSocketChatRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref rChatWebSocketAPI
+      AuthorizationType: NONE
+      RouteKey: sendmessage
+      Target: !Sub 'integrations/${rChatWebSocketLambdaIntegration}'
+  # WS route to connect to the WS
+  rChatWebSocketConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref rChatWebSocketAPI
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref rChatWebSocketLambdaAuthorizer
+      RouteKey: $connect
+      Target: !Sub 'integrations/${rChatWebSocketLambdaIntegration}'
+  # WS route to disconnect from the WS
+  rChatWebSocketDisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref rChatWebSocketAPI
+      AuthorizationType: NONE
+      RouteKey: $disconnect
+      Target: !Sub 'integrations/${rChatWebSocketLambdaIntegration}'
+  # API stage
+  rChatWebSocketStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref rChatWebSocketAPI
+      StageName: !Ref pSSMEnvironment
+      AccessLogSettings:
+        DestinationArn: !GetAtt rChatWebSocketApiLogGroup.Arn
+        Format: !Ref pSSMAccessLogsFormat
+      AutoDeploy: true
+      DefaultRouteSettings:
+        LoggingLevel: INFO
+  # API Deployment
+  rChatWebSocketDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - rChatWebSocketChatRoute
+    Properties:
+      ApiId: !Ref rChatWebSocketAPI
+  # Creating a log group for the Chat WS API
+  rChatWebSocketApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-chatws-apigw-logs"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-ChatWSApiLogGroup"
+        - Key: "Environment"
+          Value: !Ref pSSMEnvironment
+        - Key: "Region"
+          Value: !Ref 'AWS::Region'
+
+  # Chatbot Web Socket API Related Resources
+  rChatbotWebSocketAPI:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      ApiKeySelectionExpression: $request.header.x-api-key
+      Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-chatbotwebsocketapi"
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: $request.body.Route
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-chatbotwebsocketapi"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref "AWS::Region"
+      Version: !Ref pSSMVersion
+  # Lambda intergration for the API calls
+  rChatbotWebSocketLambdaIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref rChatbotWebSocketAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${rEmbeddedChatbotsLambda.Arn}/invocations'
+      CredentialsArn: !Ref pSSMAPIGWRoleArn
+  # WS route to send messages
+  rChatbotWebSocketChatRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref rChatbotWebSocketAPI
+      AuthorizationType: NONE
+      RouteKey: sendmessage
+      Target: !Sub 'integrations/${rChatbotWebSocketLambdaIntegration}'
+  # WS route to connect to the WS
+  rChatbotWebSocketConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref rChatbotWebSocketAPI
+      AuthorizationType: NONE
+      RouteKey: $connect
+      Target: !Sub 'integrations/${rChatbotWebSocketLambdaIntegration}'
+  # WS route to disconnect from the WS
+  rChatbotWebSocketDisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref rChatbotWebSocketAPI
+      AuthorizationType: NONE
+      RouteKey: $disconnect
+      Target: !Sub 'integrations/${rChatbotWebSocketLambdaIntegration}'
+  # API stage
+  rChatbotWebSocketStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref rChatbotWebSocketAPI
+      StageName: !Ref pSSMEnvironment
+      AccessLogSettings:
+        DestinationArn: !GetAtt rChatbotWebSocketApiLogGroup.Arn
+        Format: !Ref pSSMAccessLogsFormat
+      AutoDeploy: true
+      DefaultRouteSettings:
+        LoggingLevel: INFO
+  # API Deployment
+  rChatbotWebSocketDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - rChatbotWebSocketChatRoute
+    Properties:
+      ApiId: !Ref rChatbotWebSocketAPI
+  # Creating a log group for the Chatbot WS API
+  rChatbotWebSocketApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-chatbotws-apigw-logs"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-ChatbotWSApiLogGroup"
+        - Key: "Environment"
+          Value: !Ref pSSMEnvironment
+        - Key: "Region"
+          Value: !Ref 'AWS::Region'
+  # Agent Web Socket API Related Resources
+  # Web Socket API
+  rAgentWebSocketAPI:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      ApiKeySelectionExpression: $request.header.x-api-key
+      Name: !Sub "${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-agentwebsocketapi"
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: $request.body.Route
+      Tags:
+        Name: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-agentwebsocketapi"
+        Environment: !Ref pSSMEnvironment
+        Region: !Ref "AWS::Region"
+      Version: !Ref pSSMVersion
+  # Lambda intergration for the API calls
+  rAgentWebSocketLambdaIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref rAgentWebSocketAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${rAgentsLambda.Arn}/invocations'
+      CredentialsArn: !Ref pSSMAPIGWRoleArn
+  # Lambda Authorizer for the $connect route
+  rAgentWebSocketLambdaAuthorizer:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      ApiId: !Ref rAgentWebSocketAPI
+      AuthorizerCredentialsArn: !Ref pSSMAPIGWRoleArn
+      AuthorizerType: REQUEST
+      AuthorizerUri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pSSMProjectShortName}-${pSSMEnvironment}-v2-authorizerLambda:${pSSMEnvironment}/invocations'
+      IdentitySource:
+        - route.request.querystring.Authorization
+      Name: LambdaAuthorizer
+  # WS route to send messages
+  rAgentWebSocketChatRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref rAgentWebSocketAPI
+      AuthorizationType: NONE
+      RouteKey: sendmessage
+      Target: !Sub 'integrations/${rAgentWebSocketLambdaIntegration}'
+  # WS route to connect to the WS
+  rAgentWebSocketConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref rAgentWebSocketAPI
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref rAgentWebSocketLambdaAuthorizer
+      RouteKey: $connect
+      Target: !Sub 'integrations/${rAgentWebSocketLambdaIntegration}'
+  # WS route to disconnect from the WS
+  rAgentWebSocketDisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref rAgentWebSocketAPI
+      AuthorizationType: NONE
+      RouteKey: $disconnect
+      Target: !Sub 'integrations/${rAgentWebSocketLambdaIntegration}'
+  # API stage
+  rAgentWebSocketStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref rAgentWebSocketAPI
+      StageName: !Ref pSSMEnvironment
+      AccessLogSettings:
+        DestinationArn: !GetAtt rAgentWebSocketApiLogGroup.Arn
+        Format: !Ref pSSMAccessLogsFormat
+      AutoDeploy: true
+      DefaultRouteSettings:
+        LoggingLevel: INFO
+  # API Deployment
+  rAgentWebSocketDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - rAgentWebSocketChatRoute
+    Properties:
+      ApiId: !Ref rAgentWebSocketAPI
+  # Creating a log group for the Agents WS API
+  rAgentWebSocketApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/${pSSMProjectShortName}-${pSSMVerticalName}-${pSSMEnvironment}-agentws-apigw-logs"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${pSSMProjectName}-${pSSMVerticalName}-${pSSMEnvironment}-AgentWSApiLogGroup"
+        - Key: "Environment"
+          Value: !Ref pSSMEnvironment
+        - Key: "Region"
+          Value: !Ref 'AWS::Region'

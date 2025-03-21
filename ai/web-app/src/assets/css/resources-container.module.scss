@@ -1,0 +1,29 @@
+.headerContent {
+  @apply grow flex flex-wrap items-center justify-items-end md:justify-items-stretch justify-between;
+
+  button {
+    @apply justify-self-end;
+  }
+}
+
+.container {
+  @apply mt-0 flex gap-2 w-full h-screen;
+
+  .mobileStyles {
+    @apply hidden sm:flex;
+  }
+
+  .desktopStyles {
+    @apply w-full;
+  }
+
+  .detailsContainer {
+    @apply flex grow-[1] w-full sm:w-9/12 transition-width duration-1000 ease-in-out;
+  }
+}
+
+:global(.dark) {
+  .headerContent {
+    @apply text-platinum;
+  }
+}

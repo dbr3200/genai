@@ -1,0 +1,106 @@
+.card,
+.stickyCard {
+  @apply h-[fit-content] z-10;
+
+  .cardHeader {
+    @apply hidden lg:flex lg:justify-between bg-white p-4 border border-b-0 border-platinum rounded-t-md;
+  }
+}
+
+.stickyCard {
+  @apply sticky top-4 overflow-auto;
+}
+
+.list {
+  @apply h-full max-h-[75vh] hidden lg:flex lg:flex-col shadow-lg border border-platinum rounded-md;
+
+  .skeleton {
+    @apply px-4 bg-white;
+  }
+
+  .listItem {
+    @apply px-4 py-3 border-b border-platinum flex items-center justify-between gap-1 w-full cursor-pointer bg-white;
+
+    span {
+      @apply break-all;
+
+      inline-size: fit-content;
+    }
+
+    &:hover {
+      @apply bg-chalkGray;
+    }
+
+    &.active {
+      @apply bg-ashGray font-robotoBold text-amorphicBlue;
+    }
+
+    &:hover,
+    &:active {
+      &.listItemDisabled {
+        @apply bg-white;
+      }
+    }
+
+    &:first-of-type {
+      @apply rounded-t-md;
+    }
+
+    &:last-of-type {
+      @apply border-b-0;
+    }
+  }
+
+  .listItemDisabled {
+    @apply cursor-not-allowed;
+  }
+}
+
+.roundedTopNone {
+  @apply rounded-t-none;
+
+  .listItem:first-of-type {
+    @apply rounded-t-none;
+  }
+}
+
+.selectContainer {
+  @apply lg:hidden shadow-lg border border-platinum bg-white dark:border-dark2 rounded-md p-4 pt-6;
+}
+
+:global(.dark) {
+  .card,
+  .stickyCard {
+    .cardHeader {
+      @apply border-dark2 bg-dark2;
+    }
+  }
+
+  .list {
+    @apply bg-dark2 border-dark2;
+
+    .listItem {
+      @apply border-darkBorder bg-dark3 text-platinum;
+
+      &:hover,
+      &.active {
+        @apply bg-dark2;
+      }
+
+      &.active {
+        @apply bg-dark1 text-amorphicBlue;
+      }
+    }
+
+    .listItem:hover,
+    .listItem:active {
+      &.listItemDisabled {
+        @apply bg-dark3;
+      }
+    }
+
+    .skeleton {
+      @apply bg-dark2;
+    }
+  }
+}

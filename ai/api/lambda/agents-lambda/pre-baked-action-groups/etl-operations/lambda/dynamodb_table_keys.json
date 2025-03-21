@@ -1,0 +1,8 @@
+{
+    "USERS_TABLE": "usersTable",
+    "SESSIONS_TABLE": "sessionsTable",
+    "SESSIONS_TABLE_SESSIONID_INDEX": "sessionsTable-sessionId-gsi",
+    "AMORPHIC_JOBS_TABLE": "amorphic-jobsTable",
+    "AMORPHIC_JOBS_TABLE_INDEX_NAME": "amorphic-jobsTable-jobName-gsi"
+}
+

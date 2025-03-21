@@ -1,0 +1,16 @@
+.cardBody {
+  @apply whitespace-pre-wrap;
+}
+
+.selectedFilesBlock {
+  @apply fixed bottom-0 md:bottom-2 right-4 shadow-lg z-[1000] w-auto border border-gray;
+  @apply flex justify-end items-center rounded-md;
+
+  .actionButtons {
+    @apply font-robotoRegular px-5 mx-1 my-1;
+  }
+}
+
+.filePreviewLoading {
+  @apply w-full min-h-[30vh] !important;
+}

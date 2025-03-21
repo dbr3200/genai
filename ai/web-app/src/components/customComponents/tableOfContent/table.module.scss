@@ -1,0 +1,85 @@
+.card,
+.stickyCard {
+  @apply bg-white h-[fit-content] py-4 hidden sm:block;
+
+  .cardHeader {
+    @apply hidden md:flex md:justify-between mb-4;
+  }
+}
+
+.stickyCard {
+  @apply md:sticky top-4 overflow-auto md:w-3/12 shadow-lg border border-platinum;
+}
+
+.list {
+  @apply h-full max-h-[75vh] hidden md:flex md:flex-col;
+
+  .skeleton {
+    @apply px-4;
+  }
+
+  .listItem {
+    @apply px-4 py-3 border-b border-platinum flex items-center justify-between w-full;
+    @apply rounded-none bg-white cursor-pointer;
+
+    span {
+      @apply break-all;
+
+      inline-size: fit-content;
+    }
+
+    &:hover {
+      @apply bg-chalkGray;
+    }
+
+    &.active {
+      @apply bg-ashGray font-robotoBold text-amorphicBlue;
+    }
+  }
+
+  .listItem:nth-of-type(1) {
+    @apply border-t border-platinum;
+  }
+
+  .listItem:hover,
+  .listItem:active {
+    &.listItemDisabled {
+      @apply bg-white;
+    }
+  }
+
+  .listItemDisabled {
+    @apply cursor-not-allowed;
+  }
+}
+
+:global(.dark) {
+  .card,
+  .stickyCard {
+    @apply bg-dark2 border-dark2;
+  }
+
+  .list {
+    @apply bg-dark2;
+
+    .listItem {
+      @apply border-darkBorder bg-dark3;
+
+      &:hover,
+      &.active {
+        @apply bg-dark1;
+      }
+
+      &.active {
+        @apply bg-dark1;
+      }
+    }
+
+    .listItem:hover,
+    .listItem:active {
+      &.listItemDisabled {
+        @apply bg-dark3;
+      }
+    }
+  }
+}

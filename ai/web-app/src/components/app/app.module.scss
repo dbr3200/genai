@@ -1,0 +1,88 @@
+:global {
+  html,
+  body,
+  #root {
+    @apply h-full overflow-hidden font-robotoRegular;
+
+    ::selection {
+      @apply bg-warning/40;
+    }
+  }
+
+  .placeholder {
+    @apply flex justify-center items-center w-full h-full text-5xl bg-ashGray;
+  }
+
+  .secondary-text {
+    @apply text-gray text-base;
+  }
+
+  .iconButtonHover:not(.adp-button-icon) {
+    @apply hover:shadow transition-all rounded dark:hover:bg-gray;
+  }
+
+  .adp-button-icon.iconButtonHover {
+    @apply text-gray hover:text-black dark:text-silver dark:hover:text-white;
+  }
+
+  .adp-sidenav-item_center span svg {
+    @apply w-6 !important;
+  }
+
+  .requiredField::after {
+    content: " *";
+    color: red;
+  }
+
+  .panelContent {
+    @apply w-full flex flex-col mb-8;
+
+    .panelHeader {
+      @apply p-4 border-b border-ashGray bg-chalkGray flex justify-between items-center text-jetGray;
+      @apply font-robotoMedium text-xl;
+    }
+
+    .panelBody {
+      @apply overflow-y-auto flex flex-col md:flex-row gap-2 h-full w-full;
+    }
+
+    .panelBodyCol {
+      @apply overflow-y-auto p-4 flex flex-col gap-2 h-full w-full;
+    }
+  }
+
+  blockquote {
+    @apply text-base border-s-4 border-solid border-regalBlue dark:border-amorphicBlue py-2 px-4;
+  }
+
+  .minLoadingButton {
+    @apply min-w-[5rem];
+  }
+
+  :global(.dark) {
+    /* Temporary Hacks */
+    * {
+      @apply text-primary-50;
+    }
+
+    button {
+      @apply !text-primary-50;
+    }
+
+    .panelContent {
+      @apply bg-dark1;
+
+      .panelHeader {
+        @apply bg-dark2 text-platinum;
+      }
+    }
+
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active {
+      box-shadow: 0 0 0 30px rgb(42 40 55) inset;
+      -webkit-text-fill-color: #fff;
+    }
+  }
+}

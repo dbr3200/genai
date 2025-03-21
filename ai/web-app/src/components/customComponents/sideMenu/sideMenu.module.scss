@@ -1,0 +1,34 @@
+.sideMenuBar {
+  @apply flex-none max-w-[6.5rem] z-40 my-4 transition-transform -translate-x-full bg-white;
+  @apply sm:translate-x-0 font-poppins;
+}
+
+.sideMenuContainer {
+  @apply h-full overflow-y-auto bg-white flex flex-col gap-4;
+
+  .sideMenuOption {
+    @apply block px-2 text-secondary-500 rounded-lg hover:text-primary-300;
+  }
+
+  .bottomIcon {
+    @apply mt-auto mb-0 text-3 flex flex-col justify-center text-[#4D4D4D] items-center min-w-[6.5rem];
+  }
+}
+
+:global(.dark) {
+  .sideMenuBar {
+    @apply bg-secondary-450;
+  }
+
+  .sideMenuContainer {
+    @apply bg-secondary-450;
+  }
+
+  .sideMenuOption {
+    @apply text-primary-50;
+  }
+
+  .bottomIcon {
+    @apply text-primary-50;
+  }
+}

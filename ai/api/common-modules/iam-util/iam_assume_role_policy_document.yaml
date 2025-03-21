@@ -1,0 +1,12 @@
+Version: "2012-10-17"
+Statement:
+  - Effect: "Allow"
+    Action: "sts:AssumeRole"
+    Principal:
+      Service:
+        - "$SERVICE_TYPE.amazonaws.com"
+    Condition:
+      StringEquals:
+        "aws:SourceAccount": "$ACCOUNT_ID"
+      ArnLike:
+        "AWS:SourceArn": "arn:$AWS_PARTITION:bedrock:$AWS_REGION:$ACCOUNT_ID:knowledge-base/*"

@@ -1,0 +1,40 @@
+.resourceDependencyListing {
+  @apply py-4;
+
+  &.compact {
+    @apply flex flex-wrap gap-4;
+  }
+
+  &.nonCompact,
+  &.deletionPanel {
+    .accordion {
+      @apply shadow-lg !important;
+      @apply border border-gray border-opacity-50;
+
+      .header {
+        @apply border-b border-gray border-opacity-50;
+      }
+
+      .body {
+        @apply max-h-48 h-full bg-ashGray !important;
+      }
+    }
+  }
+
+  &.nonCompact {
+    @apply grid grid-flow-row-dense grid-cols-1 md:grid-cols-3 gap-4;
+  }
+}
+
+:global(.dark) {
+  .resourceDependencyListing {
+    &.nonCompact,
+    &.deletionPanel {
+      .accordion {
+        .body {
+          @apply bg-dark1 !important;
+        }
+      }
+    }
+  }
+}

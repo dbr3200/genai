@@ -1,0 +1,38 @@
+.cardBody {
+  @apply flex p-6 bg-white font-poppins rounded shadow;
+
+  .widthBorder {
+    @apply block w-full;
+  }
+
+  .cardBorder {
+    @apply flex border-b-1 border-[#ECF2F8] pb-[0.938rem];
+  }
+
+  .icon {
+    @apply text-primary-300 w-4 h-4;
+  }
+
+  .cardTitle {
+    @apply font-poppins text-5 leading-none pl-[0.625rem] text-secondary-200;
+  }
+
+  .cardDesc {
+    @apply font-poppins pt-4 text-secondary-200;
+  }
+}
+
+:global(.dark) {
+  .cardBody {
+    @apply bg-secondary-450;
+  }
+
+  .cardDesc,
+  .cardTitle {
+    @apply text-primary-50;
+  }
+
+  .cardBorder {
+    @apply border-secondary-200;
+  }
+}

@@ -1,0 +1,34 @@
+.confirmationModal {
+  .confirmButton {
+    @apply bg-salsa mx-3 text-white py-3 px-6 rounded min-w-[8rem];
+  }
+
+  .cancelButton {
+    @apply bg-ashGray mx-3 text-black border py-3 px-6 rounded min-w-[8rem];
+    @apply hover:brightness-150 hover:bg-ashGray !important;
+  }
+
+  .htmlContainer {
+    @apply bg-white text-black;
+  }
+
+  .buttonContainerStyles {
+    @apply grid space-y-4 md:space-y-0 md:flex md:flex-row md:justify-center;
+  }
+}
+
+:global(.dark) {
+  .confirmationModal {
+    .cancelButton {
+      @apply text-platinum bg-dark3;
+    }
+
+    .htmlContainer {
+      @apply bg-dark2 text-platinum;
+    }
+
+    .buttonContainerStyles {
+      @apply grid md:flex md:flex-row md:justify-center;
+    }
+  }
+}

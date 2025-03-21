@@ -1,0 +1,25 @@
+.labelContainer {
+  @apply flex items-center gap-2 mb-2;
+}
+
+.label {
+  @apply text-gray text-xs font-robotoRegular;
+}
+
+.fieldContainer {
+  @apply flex flex-col flex-1 first:me-4;
+}
+
+.listItem {
+  @apply flex items-start gap-2 rounded-md px-2 py-4;
+}
+
+:global(.dark) {
+  .label {
+    @apply text-platinum;
+  }
+
+  .listItem {
+    @apply focus-within:bg-dark2;
+  }
+}

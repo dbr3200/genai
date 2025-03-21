@@ -1,0 +1,29 @@
+{
+  "USERS_TABLE": "usersTable",
+  "GROUPS_TABLE": "groupsTable",
+  "SESSIONS_TABLE": "sessionsTable",
+  "SESSIONS_TABLE_SESSIONID_INDEX": "sessionsTable-sessionId-gsi",
+  "SESSIONS_TABLE_CONNECTIONID_INDEX": "sessionsTable-connectionId-gsi",
+  "CHAT_HISTORY_TABLE": "chatHistoryTable",
+  "CHAT_HISTORY_TABLE_SESSIONID_MESSAGEID_INDEX": "chatHistoryTable-sessionId-messageId-lsi",
+  "CHAT_HISTORY_CLIENTID_INDEX": "chatHistoryTable-clientId-gsi",
+
+  "WORKSPACES_TABLE": "workspacesTable",
+  "WORKSPACES_DOCUMENTS_TABLE": "workspacesDocumentsTable",
+  "WORKSPACES_DOCUMENTS_TABLE_WORKSPACEID_INDEX": "workspacesDocumentsTable-workspaceId-gsi",
+  "WORKSPACES_EXECUTIONS_TABLE": "workspacesExecutionsTable",
+  "WORKSPACES_EXECUTIONS_TABLE_WORKSPACEID_INDEX": "workspacesExecutionsTable-workspaceId-gsi",
+  "WORKSPACES_GROUPS_TABLE": "workspacesGroupsTable",
+  "WORKSPACES_GROUPS_TABLE_WORKSPACEID_INDEX": "workspacesGroupsTable-workspaceId-gsi",
+  "WORKSPACES_DOCUMENTS_TABLE_RUNID_INDEX": "workspacesDocumentsTable-runId-gsi",
+
+  "CHATBOTS_TABLE": "chatbotsTable",
+  "CHATBOTS_TABLE_CHATBOTNAME_INDEX": "chatbotsTable-chatbotName-gsi",
+
+  "MODELS_TABLE": "modelsTable",
+  "MODELS_TABLE_MODELNAME_INDEX": "modelsTable-modelName-gsi",
+
+  "AGENTS_TABLE": "agentsTable",
+  "AGENTS_ACTION_GROUPS_TABLE": "agentsActionGroupsTable",
+  "AGENTS_LIBRARIES_TABLE": "agentsLibrariesTable"
+}

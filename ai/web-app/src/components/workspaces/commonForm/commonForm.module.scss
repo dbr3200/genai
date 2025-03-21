@@ -1,0 +1,25 @@
+.panelHeaderText {
+  @apply border-gray text-xl;
+}
+
+.required {
+  @apply mb-6 flex justify-end text-salsa text-sm;
+}
+
+.formContent {
+  @apply grid gap-x-14 gap-y-14 grid-cols-1 md:grid-cols-2 items-baseline;
+}
+
+.formField {
+  @apply flex flex-col justify-center self-start;
+}
+
+.buttonStyle {
+  @apply w-44 h-12;
+}
+
+:global(.dark) {
+  .panelHeaderText {
+    @apply text-platinum;
+  }
+}

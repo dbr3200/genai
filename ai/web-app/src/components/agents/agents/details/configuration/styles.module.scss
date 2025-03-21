@@ -1,0 +1,15 @@
+.detailsBody {
+  @apply bg-white w-full md:w-auto flex-grow flex flex-col gap-4 overflow-auto h-full;
+}
+
+.list {
+  @apply w-full flex flex-col gap-2 max-h-40 overflow-y-auto;
+
+  .listItem {
+    @apply mr-2 flex justify-between items-center gap-2 text-primary-300;
+  }
+}
+
+.ctaButton {
+  @apply bg-primary-300 font-poppins text-primary-50 font-normal px-3;
+}

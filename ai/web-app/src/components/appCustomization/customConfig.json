@@ -1,0 +1,61 @@
+{
+    "LOGO_PATH": "",
+    "LOGOMARK_PATH": "",
+    "PROJECT_NAME": "",
+    "loginPage": {
+        "backgroundCover": "",
+        "heading": {
+            "en-US": ""
+        },
+        "subHeading": {
+            "en-US": ""
+        }
+    },
+    "registerPage": {
+        "backgroundCover": "",
+        "heading": {
+            "en-US": ""
+        },
+        "subHeading": {
+            "en-US": ""
+        }
+    },
+    "forgotPwdPage": {
+        "backgroundCover": "",
+        "heading": {
+            "en-US": ""
+        },
+        "subHeading": {
+            "en-US": ""
+        }
+    },
+    "forcePwdResetPage": {
+        "backgroundCover": "",
+        "heading": {
+            "en-US": ""
+        },
+        "subHeading": {
+            "en-US": ""
+        }
+    },
+    "setupMfaPage": {
+        "backgroundCover": "",
+        "heading": {
+            "en-US": ""
+        },
+        "subHeading": {
+            "en-US": ""
+        }
+    },
+    "verifyOtpPage": {
+        "backgroundCover": "",
+        "heading": {
+            "en-US": ""
+        },
+        "subHeading": {
+            "en-US": ""
+        }
+    },
+    "aliases": {
+    }
+}

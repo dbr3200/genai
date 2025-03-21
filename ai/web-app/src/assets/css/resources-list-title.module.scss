@@ -1,0 +1,23 @@
+.listTitleContainer {
+  @apply flex flex-col gap-1 py-1;
+
+  .title {
+    @apply flex flex-row gap-2 items-start w-full break-all;
+  }
+
+  .subTitle {
+    @apply line-clamp-2 text-gray text-xs font-robotoRegular;
+  }
+}
+
+:global(.dark) {
+  .listTitleContainer {
+    .title {
+      @apply text-platinum;
+    }
+
+    .subTitle {
+      @apply text-silver;
+    }
+  }
+}

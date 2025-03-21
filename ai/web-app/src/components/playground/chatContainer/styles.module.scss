@@ -1,0 +1,86 @@
+.chatBubble {
+  @apply whitespace-pre-line w-full;
+
+  table {
+    @apply w-full table table-auto border;
+
+    td,
+    th {
+      @apply p-2;
+    }
+
+    tr:nth-child(1) {
+      @apply bg-primary-300 text-white text-start;
+    }
+
+    tr:nth-child(odd):not(:first-child) {
+      @apply bg-secondary-100;
+    }
+
+    tr:nth-child(even):not(:first-child) {
+      @apply bg-transparent;
+    }
+  }
+
+  code {
+    @apply flex p-2 bg-secondary-400 text-secondary-100 whitespace-break-spaces leading-6 !w-full select-all rounded-md;
+  }
+
+  img {
+    @apply aspect-auto w-full max-w-sm rounded-sm border border-secondary-100;
+  }
+
+  a {
+    @apply text-primary-300 underline;
+  }
+
+  b {
+    @apply font-bold;
+  }
+
+  ol {
+    @apply list-decimal;
+  }
+
+  [class~="highlight"] {
+    @apply inline px-1.5 py-0.5 bg-warning bg-opacity-50 text-secondary-300 rounded-md;
+  }
+}
+
+.msgSection {
+  @apply rounded-md p-4 ps-8 border border-secondary-150 flex flex-col gap-4 w-full;
+
+  details {
+    summary {
+      @apply cursor-pointer flex font-bold items-center gap-2 text-sm;
+
+      ::before {
+        content: "▶";
+
+        @apply me-2;
+      }
+    }
+  }
+
+  .header {
+    @apply font-bold flex items-end gap-2;
+  }
+
+  .sourcesContainer {
+    @apply overflow-y-hidden overflow-x-auto w-full max-h-min flex flex-nowrap gap-4;
+
+    scrollbar-width: thin;
+
+    .sourceCard {
+      @apply flex-grow-0 flex-shrink-0 p-4 text-ellipsis overflow-hidden mb-4 max-w-xs;
+    }
+
+    &::-webkit-scrollbar {
+      width: 12px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      border-radius: 20px;
+    }
+  }
+}

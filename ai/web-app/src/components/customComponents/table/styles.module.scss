@@ -1,0 +1,114 @@
+.details {
+  @apply divide-y divide-silver w-full;
+
+  .item {
+    @apply bg-white p-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-4;
+
+    dt {
+      @apply text-sm font-medium text-gray;
+    }
+
+    dd {
+      @apply text-sm mt-1 sm:mt-0 sm:col-span-2;
+    }
+
+    &:nth-child(even) {
+      @apply bg-ashGray;
+    }
+  }
+}
+
+.featureTable {
+  [role~="columnheader"] {
+    @apply bg-carolinaBlue text-white !important;
+  }
+}
+
+.pivotTable {
+  @apply lg:max-w-3xl xl:max-w-4xl 2xl:max-w-7xl overflow-y-auto;
+
+  [class^="pvtUi"] {
+    [class^="pvtVals"] {
+      @apply bg-white border-gray;
+    }
+
+    [class^="pvtRenderers"] {
+      @apply border-t border-s border-gray;
+    }
+
+    [class^="pvtAxisContainer"] {
+      @apply bg-white border-gray;
+    }
+
+    [class^="pvtOutput"] {
+      @apply border-b border-s border-gray overflow-auto;
+
+      [class^="pvtTable"] {
+        [class^="pvtAxisLabel"] {
+          @apply bg-ashGray min-w-[100px];
+        }
+
+        [class^="pvtRowLabel"] {
+          @apply bg-ashGray;
+        }
+      }
+    }
+  }
+}
+
+:global(.dark) {
+  .details {
+    @apply bg-dark1 divide-darkBorder;
+
+    .item {
+      @apply bg-dark2;
+
+      dt,
+      dd {
+        @apply text-platinum;
+      }
+
+      &:nth-child(even) {
+        @apply bg-dark1;
+      }
+    }
+  }
+
+  .featureTable {
+    [role~="columnheader"] {
+      @apply bg-carolinaBlue text-white !important;
+    }
+  }
+
+  .pivotTable {
+    @apply w-full;
+
+    [class^="pvtUi"] {
+      [class^="pvtVals"] {
+        @apply bg-dark2 border-gray;
+      }
+
+      [class^="pvtRenderers"] {
+        @apply border-t border-s border-gray;
+      }
+
+      [class^="pvtAxisContainer"] {
+        @apply bg-dark2 border-gray;
+      }
+
+      [class^="pvtOutput"] {
+        @apply border-b border-s border-gray overflow-auto;
+
+        [class^="pvtTable"] {
+          [class^="pvtAxisLabel"] {
+            @apply bg-dark1 text-platinum min-w-[100px];
+          }
+
+          [class^="pvtRowLabel"] {
+            @apply bg-dark1 text-platinum;
+          }
+        }
+      }
+    }
+  }
+}

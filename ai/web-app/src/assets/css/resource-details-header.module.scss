@@ -1,0 +1,48 @@
+.headerContainer {
+  @apply flex flex-col mb-4 px-4 gap-2 text-jetGray;
+
+  .header {
+    @apply flex flex-row items-center justify-between;
+
+    .title {
+      @apply grow flex flex-wrap items-center gap-2 w-full py-2;
+
+      h2 {
+        @apply text-amorphicBlue text-lg font-robotoBold;
+      }
+    }
+
+    .ctas {
+      @apply border-s border-platinum ps-4 gap-2;
+
+      &,
+      & > .icons {
+        @apply flex flex-row items-center gap-2 flex-1 h-full w-full min-w-max;
+
+        [class~="adp-ctaMdContainer"] {
+          @apply space-s-2;
+
+          &:hover {
+            @apply bg-none;
+          }
+        }
+      }
+    }
+  }
+
+  .auxiliaries {
+    @apply flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:divide-s sm:divide-gray;
+  }
+}
+
+:global(.dark) {
+  .headerContainer {
+    @apply text-platinum;
+
+    .header {
+      .ctas {
+        @apply border-darkBorder;
+      }
+    }
+  }
+}

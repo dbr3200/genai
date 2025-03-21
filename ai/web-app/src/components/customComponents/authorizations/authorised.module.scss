@@ -1,0 +1,168 @@
+.authorizationFormContainer {
+  @apply transition-all duration-100 ease-in-out delay-[50] ;
+}
+
+.authorizationCardHeader {
+  @apply w-full flex flex-wrap justify-end items-center transition-all delay-200 ease-linear;
+}
+
+.formContainer {
+  @apply p-4 border border-platinum rounded-md shadow transition-shadow delay-500 ease-linear;
+}
+
+.authorizationViewSelect {
+  @apply w-full h-fit;
+}
+
+.buttonTabActive {
+  @apply border-b-2 border-black pb-2 text-sm;
+}
+
+.buttonTab {
+  @apply border-b-2 border-transparent pb-2 text-sm;
+}
+
+.utilityRow {
+  @apply flex items-center justify-between py-2 w-full;
+}
+
+.usernameElement {
+  @apply text-sm font-medium mb-2;
+}
+
+.addItemFieldStyle {
+  @apply col-span-2 md:col-span-1 min-h-[5rem] pb-6;
+}
+
+.authTable {
+  @apply text-jetGray font-robotoRegular w-auto table rounded-none overflow-x-hidden;
+
+  tr {
+    @apply tracking-wide;
+
+    td {
+      @apply px-4 py-2 break-all whitespace-pre-line min-w-[16rem] w-full;
+
+      .listItem {
+        @apply flex flex-row items-center gap-2 justify-between w-full bg-transparent;
+
+        .listItemInfoContainer {
+          @apply flex flex-grow items-center gap-2 justify-start;
+
+          .icon {
+            @apply h-8 w-8 text-silver;
+          }
+
+          .listItemInfo {
+            @apply flex flex-col;
+
+            .heading {
+              @apply flex flex-row items-center gap-1 text-base;
+
+              .tag {
+                @apply text-xs font-medium py-0 px-2;
+              }
+            }
+
+            .subHeading {
+              @apply text-xs font-medium text-silver tracking-normal break-words;
+            }
+          }
+        }
+
+        .ctas {
+          @apply flex flex-none items-center gap-1;
+        }
+      }
+    }
+  }
+
+  tbody,
+  tbody > tr {
+    @apply border-none bg-transparent !important;
+  }
+}
+
+.searchBarUtil {
+  @apply flex items-center gap-4 rtl:pr-4 w-full;
+}
+
+.updateResourcesContainer {
+  @apply bg-chalkGray w-full overflow-y-scroll;
+}
+
+.searchBarSize {
+  @apply md:w-[50%] w-full;
+}
+
+.tableCardClasses {
+  @apply space-y-2 shadow-none;
+}
+
+.provideAccess {
+  @apply flex flex-col md:flex-row w-full md:space-x-4 space-y-4 dark:text-white justify-between items-baseline;
+}
+
+.tableData {
+  @apply flex flex-col min-h-fit max-h-[18rem];
+}
+
+.groupDetails {
+  @apply flex flex-row w-full space-x-4 items-center;
+}
+
+.CTAGroup {
+  @apply flex flex-row items-center justify-end w-full sm:w-auto gap-2;
+}
+
+.divider {
+  hr[class^="divider_"] {
+    @apply border-platinum !important;
+  }
+}
+
+.psContainer {
+  @apply flex flex-col;
+
+  section[class~="adp-emptystate__image-wrapper"] {
+    figure {
+      img {
+        @apply max-h-40;
+      }
+    }
+  }
+}
+
+:global(.dark) {
+  .authTable {
+    tr {
+      td {
+        @apply text-silver;
+      }
+    }
+  }
+
+  .formContainer {
+    @apply border-darkBorder;
+  }
+
+  .updateResourcesContainer {
+    @apply bg-dark1 text-platinum;
+  }
+
+  .buttonTabActive {
+    @apply border-white;
+  }
+
+  .addItemFieldStyle {
+    @apply text-platinum;
+  }
+
+  .tableCardClasses {
+    @apply bg-dark1;
+  }
+
+  .provideAccess {
+    @apply text-white;
+  }
+}

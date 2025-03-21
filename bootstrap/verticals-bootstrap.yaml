@@ -1,0 +1,245 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Generic AWS CloudFormation template to create Code Build Project for Verticals
+Parameters:
+  pProjectShortName:
+    Type: String
+    Description: Project Short Name
+  pEnvironment:
+    Type: String
+    Description: Environment
+  pProjectName:
+    Type: String
+    Description: Project Name
+  pDeploymentSource:
+    Type: String
+    Description: Deployment Source(Bitbucket/CMP)
+    AllowedValues: [Bitbucket,CMP]
+  pApplicationsTable:
+    Type: String
+    Description: Applications DynamoDB Table Name
+    Default: "cmp-*"
+  pCodeBuildRunnerImageURI:
+    Type: String
+    Description: URI of image to be used by codebuild
+Conditions:
+  cIsDeploymentFromCMP: !Equals [ !Ref pDeploymentSource, "CMP" ]
+Resources:
+  # Log Group for Code Build Project
+  rVerticalDeployCodeBuildCloudWatchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ["-", [!Ref pProjectShortName, !Ref pEnvironment, "verticals", "deploy", "Logs"]]
+      RetentionInDays: 90
+  # Vertical Deploy Code Build Project
+  rVerticalDeployCodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Description: "Project to run verticals build and deployment"
+      ServiceRole: !GetAtt rVerticalDeployCodebuildServiceRole.Arn
+      Name: !Join ["-", [!Ref pProjectShortName, !Ref pEnvironment, "verticals", "deploy"]]
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        # This image is just a placeholder. Actual runner image will be overridden when the 
+        # CB is triggered from BB or CMP
+        Image: !Ref pCodeBuildRunnerImageURI
+        ImagePullCredentialsType: SERVICE_ROLE
+        EnvironmentVariables:
+          - Name: core_bucket_name
+            Value: ""
+            Type: PLAINTEXT
+          - Name: project_short_name
+            Value: ""
+            Type: PLAINTEXT
+          - Name: cross_account_role_arn
+            Value: ""
+            Type: PLAINTEXT
+          - Name: cross_account_externalid
+            Value: ""
+            Type: PLAINTEXT
+          - Name: deploy_region
+            Value: ""
+            Type: PLAINTEXT
+          - Name: deployment_environment
+            Value: ""
+            Type: PLAINTEXT
+          - Name: vertical_name
+            Value: ""
+            Type: PLAINTEXT
+          - Name: acm_certificate_arn
+            Value: ""
+            Type: PLAINTEXT
+          - Name: acm_domain_alias
+            Value: ""
+            Type: PLAINTEXT
+          - Name: artifacts_prefix
+            Value: ""
+            Type: PLAINTEXT
+      LogsConfig:
+        CloudWatchLogs:
+          GroupName: !Ref rVerticalDeployCodeBuildCloudWatchLogGroup
+          Status: ENABLED
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Source:
+        Type: NO_SOURCE
+        # This buildspec location is just a placeholder. Actual buildspec will be overridden when the 
+        # CB is triggered from BB or CMP
+        BuildSpec: !Sub "arn:${AWS::Partition}:s3:::${pProjectShortName}-${AWS::Region}-${AWS::AccountId}-core/verticals/verticals/buildspec.yaml"
+      TimeoutInMinutes: 60
+      Tags:
+        - Key: Name
+          Value: !Join [ "-", [ !Ref pProjectName, !Ref pEnvironment, "VerticalsDeploy"] ]
+        - Key: Environment
+          Value: !Ref pEnvironment
+        - Key: Region
+          Value: !Ref 'AWS::Region'
+  # Code Build Service Role
+  rVerticalDeployCodebuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Join ["-",[!Ref pProjectShortName, !Ref 'AWS::Region', !Ref pEnvironment, "VerticalsDeployCodebuildServiceRole"]]
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - "codebuild.amazonaws.com"
+      Policies:
+        - PolicyName: "VerticalsDeployCodebuildServiceRolePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:CreateLogGroup
+                  - logs:PutLogEvents
+                Resource: "*"
+              -
+                Effect: Allow
+                Action:
+                  - sts:AssumeRole
+                  - ecr:GetAuthorizationToken
+                Resource:
+                  - "*"
+              -
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource:
+                  - "arn:aws:s3:::*-logs/*"
+              -
+                Effect: Allow
+                Action:
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:BatchCheckLayerAvailability
+                Resource: !Sub "arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/${pProjectShortName}-*"
+              -
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetBucketAcl
+                  - s3:GetBucketLocation
+                  - s3:GetObjectVersion
+                  - s3:List*
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:s3:::*-core"
+                  - !Sub "arn:${AWS::Partition}:s3:::*-core/*"
+                  - !Sub "arn:${AWS::Partition}:s3:::${pProjectShortName}-*-artifacts"
+                  - !Sub "arn:${AWS::Partition}:s3:::${pProjectShortName}-*-artifacts/*"
+              - 
+                Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource: "*"
+        # Add dynamodb policies if deployment is from CMP
+        - !If
+          - cIsDeploymentFromCMP
+          - PolicyName: "VerticalsDeployCodebuildServiceRoleDynamoDBPolicy"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                -
+                  Effect: Allow
+                  Action:
+                    - dynamodb:GetItem
+                    - dynamodb:UpdateItem
+                  Resource:
+                    - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${pApplicationsTable}"
+          - !Ref AWS::NoValue
+      Tags:
+      - Key: Name
+        Value: !Join [ "-", [ !Ref pProjectShortName, !Ref 'AWS::Region', !Ref pEnvironment, "VerticalsCodebuildServiceRole" ] ]
+      - Key: Environment
+        Value: !Ref pEnvironment
+      - Key: Region
+        Value: !Ref 'AWS::Region'
+  # Log Group for Cleanup Code Build Project
+  rVerticalCleanupCodeBuildCloudWatchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ["-", [!Ref pProjectShortName, !Ref pEnvironment, "verticals", "cleanup", "Logs"]]
+      RetentionInDays: 90
+  # Cleanup Code Build Project
+  rVerticalCleanupCodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Description: "Project for cleaning up verticals"
+      ServiceRole: !GetAtt rVerticalDeployCodebuildServiceRole.Arn
+      Name: !Join ["-", [!Ref pProjectShortName, !Ref pEnvironment, "verticals", "cleanup"]]
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image:  !Ref pCodeBuildRunnerImageURI
+        ImagePullCredentialsType: SERVICE_ROLE
+        EnvironmentVariables:
+          - Name: account_id
+            Value: ""
+            Type: PLAINTEXT
+          - Name: project_short_name
+            Value: ""
+            Type: PLAINTEXT
+          - Name: cross_account_role_arn
+            Value: ""
+            Type: PLAINTEXT
+          - Name: cross_account_externalid
+            Value: ""
+            Type: PLAINTEXT
+          - Name: deploy_region
+            Value: ""
+            Type: PLAINTEXT
+          - Name: deployment_environment
+            Value: ""
+            Type: PLAINTEXT
+          - Name: vertical_name
+            Value: ""
+            Type: PLAINTEXT
+          - Name: cmp_core_bucket
+            Value: ""
+            Type: PLAINTEXT
+      LogsConfig:
+        CloudWatchLogs:
+          GroupName: !Ref rVerticalCleanupCodeBuildCloudWatchLogGroup
+          Status: ENABLED
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Source:
+        Type: NO_SOURCE
+        # This buildspec location is just a placeholder. Actual buildspec will be overridden when the 
+        # CB is triggered from BB or CMP
+        BuildSpec: !Sub "arn:${AWS::Partition}:s3:::${pProjectShortName}-${AWS::Region}-${AWS::AccountId}-core/verticals/verticals/cleanup-buildspec.yaml"
+      TimeoutInMinutes: 60
+      Tags:
+        - Key: Name
+          Value: !Join [ "-", [ !Ref pProjectName, !Ref pEnvironment, "VerticalsCleanup"] ]
+        - Key: Environment
+          Value: !Ref pEnvironment
+        - Key: Region
+          Value: !Ref 'AWS::Region'

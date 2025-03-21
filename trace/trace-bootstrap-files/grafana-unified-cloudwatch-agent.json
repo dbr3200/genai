@@ -1,0 +1,49 @@
+{
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/grafana/grafana.log",
+            "log_group_name": "/aws/grafana/grafana-logs",
+            "log_stream_name": "{instance_id}"
+          }
+        ]
+      }
+    },
+    "log_stream_name": "cloudwatch-agent",
+    "force_flush_interval": 5
+  },
+  "metrics": {
+    "metrics_collected": {
+      "mem": {
+        "measurement": [
+          {
+            "name": "mem_used_percent",
+            "rename": "MemoryUsedPercent"
+          },
+          {
+            "name": "mem_used",
+            "rename": "MemoryUsed"
+          }
+        ],
+        "metrics_collection_interval": 60,
+        "append_dimensions": {
+          "InstanceName": "GrafanaInstance"
+        }
+      },
+      "cpu": {
+        "measurement": [
+          { "name": "cpu_usage_idle", "rename": "CPU_USAGE_IDLE" }
+        ],
+        "metrics_collection_interval": 60,
+        "append_dimensions": {
+          "InstanceName": "GrafanaInstance"
+        }
+      }
+    },
+    "append_dimensions": {
+      "InstanceId": "${aws:InstanceId}"
+    }
+  }
+}

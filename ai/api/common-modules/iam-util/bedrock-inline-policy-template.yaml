@@ -1,0 +1,35 @@
+Version: '2012-10-17'
+Statement:
+- Sid: VisualEditor0
+  Effect: Allow
+  Action: iam:PassRole
+  Resource: "*"
+  Condition:
+    StringEquals:
+      iam:PassedToService:
+      - bedrock.amazonaws.com
+
+- Sid: CustomBedrockAction
+  Effect: Allow
+  Action: bedrock:InvokeModel
+  Resource: "$EMBEDDING_MODEL_ARN"
+
+- Sid: CustomRdsAction
+  Effect: Allow
+  Action:
+  - rds:DescribeDBClusters
+  - rds-data:BatchExecuteStatement
+  - rds-data:ExecuteStatement
+  Resource: "$CLUSTER_ARN"
+
+- Sid: VisualEditor3
+  Effect: Allow
+  Action: secretsmanager:GetSecretValue
+  Resource: "$SERVICE_USER_SECRET_ARN"
+
+- Sid: KmsKeyAccessStatement
+  Effect: Allow
+  Action:
+  - kms:Decrypt
+  - kms:GenerateDataKey*
+  Resource: "$DLZ_KMS_KEY_ARN"

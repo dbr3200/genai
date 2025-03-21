@@ -1,0 +1,31 @@
+.dataGrid {
+  @apply w-full grid grid-flow-row-dense grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-transparent;
+
+  .resourceCard {
+    @apply shadow-md p-0 h-auto text-jetGray font-robotoRegular;
+  }
+
+  .resourceCardBody {
+    @apply flex flex-col h-full justify-between p-0;
+
+    .cardTitle {
+      @apply self-start mb-4 px-4 py-2 font-robotoBold;
+    }
+
+    .cardProps {
+      @apply flex flex-wrap gap-2 grow items-center content-end px-4 py-2;
+    }
+
+    .cardFooter {
+      @apply flex flex-wrap justify-end items-center content-center px-4 py-1;
+    }
+  }
+}
+
+:global(.dark) {
+  .dataGrid {
+    .resourceCard {
+      @apply border border-dark3;
+    }
+  }
+}

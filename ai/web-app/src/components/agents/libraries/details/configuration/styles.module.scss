@@ -1,0 +1,11 @@
+.detailsBody {
+  @apply bg-white w-full md:w-auto flex-grow flex flex-col gap-4 overflow-auto h-full;
+}
+
+.packagesList {
+  @apply w-full flex flex-col gap-2 h-40 overflow-y-auto;
+
+  .packageListItem {
+    @apply rounded border border-secondary-200 p-1 mr-2 flex justify-between items-center gap-2;
+  }
+}

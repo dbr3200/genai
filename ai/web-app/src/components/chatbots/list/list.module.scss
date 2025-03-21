@@ -1,0 +1,18 @@
+.avatarIcon {
+  @apply rounded-lg bg-white px-2 py-1 text-xs font-medium text-primary-300 ring-1 ring-inset;
+  @apply font-poppins border-primary-300;
+}
+
+.actionIcon {
+  @apply flex items-center justify-center w-7 h-7 rounded-full bg-primary-100;
+}
+
+:global(.dark) {
+  .avatarIcon {
+    @apply border-primary-250 text-primary-50 bg-secondary-450;
+  }
+
+  .actionIcon {
+    @apply bg-secondary-350;
+  }
+}

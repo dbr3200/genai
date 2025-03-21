@@ -1,0 +1,25 @@
+# AWS Official python3.12 lambda base image
+FROM public.ecr.aws/lambda/python:3.12
+WORKDIR /var/task
+
+# Label the version with commit sha OR release version
+LABEL cwdl.api.version="test"
+
+RUN dnf update -y \
+  && dnf -y install gcc
+
+# Copy the requirements file to download the libraries
+COPY trace/api/lambda-layer/requirements.txt ./
+RUN python3 -m pip install -r requirements.txt
+
+COPY trace/api/common-modules/*/*py $lambda_layer_modules_src_dir
+COPY trace/api/common-modules/*/*json $lambda_layer_modules_src_dir
+
+# Copy the codebase to the app directory
+COPY trace/api/lambda ./
+
+# This would prohibits to use interactive shell on the container
+RUN echo 'echo "Cloudwick prohibits you to use interactive shell"' > ~/.bashrc && echo "exit" >> ~/.bashrc
+RUN sed -i -e '1s|^#!/bin/sh|#!/bin/bash|' /lambda-entrypoint.sh && rm /bin/sh
+
+CMD [ "app/app.lambda_handler" ]
