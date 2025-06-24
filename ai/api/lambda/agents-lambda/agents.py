@@ -1,7 +1,7 @@
 """
 This lambda is for agents.
 Agents can help the user complete actions based on their data and user input.
-They can invoke APIs based on the user input to perform the required action.
+They can invoke APIs based on the user input to perform the required action
 """
 import os
 import sys
